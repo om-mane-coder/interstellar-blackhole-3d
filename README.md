@@ -4,6 +4,9 @@ An interactive, movie-accurate 3D WebGL simulation of the supermassive black hol
 
 Built with **Three.js**, **GLSL Kerr-Schwarzschild Relativistic Raymarching Shaders**, and Hans Zimmer's **Original Interstellar Soundtrack** integrated via the **Web Audio API**.
 
+🌐 **Live Website**: [https://interstellar-blackhole-3d.vercel.app/](https://interstellar-blackhole-3d.vercel.app/)  
+📦 **GitHub Repository**: [https://github.com/om-mane-coder/interstellar-blackhole-3d](https://github.com/om-mane-coder/interstellar-blackhole-3d)
+
 ---
 
 ## 🌟 Movie Precision Upgrades
