@@ -973,10 +973,6 @@ input:checked + .slider-switch:before {
     display: none !important;
   }
 
-  .mobile-audio-pill {
-    display: flex;
-  }
-
   .btn-text-full {
     display: none;
   }
@@ -993,12 +989,15 @@ input:checked + .slider-switch:before {
   }
 
   .hud-title {
-    font-size: 1rem;
+    font-size: 0.95rem;
     letter-spacing: 0.16em;
   }
 
   .hud-subtitle {
-    display: none;
+    display: block;
+    font-size: 0.58rem;
+    color: var(--accent-gold);
+    letter-spacing: 0.08em;
   }
 
   .hud-logo-icon {
