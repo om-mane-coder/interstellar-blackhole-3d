@@ -17,9 +17,11 @@ class InterstellarApp {
     this.container = document.getElementById('canvas-container');
     this.clock = new THREE.Clock();
 
-    this.cameraMode = 'cinematic'; // 'cinematic', 'endurance', 'miller', 'infall', 'polar', 'free'
-    this.camTargetPos = new THREE.Vector3(0, 1.15, 17.5);
-    this.camTargetLookAt = new THREE.Vector3(0, 0, 0);
+    // Default to the exact movie portrait perspective matching the reference image
+    this.cameraMode = 'movie_icon';
+    this.camTargetPos = new THREE.Vector3(0.0, 0.8, 16.5);
+    this.camTargetLookAt = new THREE.Vector3(0.0, 0.35, 0.0);
+    this.targetUp = new THREE.Vector3(0.96, 0.28, 0.0).normalize();
 
     this.resolutionScale = 1.0;
 
@@ -47,7 +49,7 @@ class InterstellarApp {
     this.renderer.setSize(window.innerWidth, window.innerHeight);
     this.renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2.0));
     this.renderer.toneMapping = THREE.ACESFilmicToneMapping;
-    this.renderer.toneMappingExposure = 1.1;
+    this.renderer.toneMappingExposure = 1.15;
     this.renderer.autoClear = false;
 
     this.container.appendChild(this.renderer.domElement);
@@ -85,6 +87,7 @@ class InterstellarApp {
       1000
     );
     this.camera.position.copy(this.camTargetPos);
+    this.camera.up.copy(this.targetUp);
 
     this.controls = new OrbitControls(this.camera, this.renderer.domElement);
     this.controls.enableDamping = true;
@@ -186,23 +189,34 @@ class InterstellarApp {
 
   setCameraMode(mode) {
     this.cameraMode = mode;
-    if (mode === 'cinematic') {
-      this.camTargetPos.set(0, 1.15, 17.5);
-      this.camTargetLookAt.set(0, 0, 0);
+    if (mode === 'movie_icon') {
+      // The exact movie portrait angle matching the reference image
+      this.camTargetPos.set(0.0, 0.8, 16.5);
+      this.camTargetLookAt.set(0.0, 0.35, 0.0);
+      this.targetUp.set(0.96, 0.28, 0.0).normalize();
+    } else if (mode === 'cinematic') {
+      // Classic horizontal view
+      this.camTargetPos.set(0.0, 1.15, 17.5);
+      this.camTargetLookAt.set(0.0, 0.0, 0.0);
+      this.targetUp.set(0.0, 1.0, 0.0);
     } else if (mode === 'endurance') {
       const shipPos = this.endurance.getWorldPosition();
       this.camTargetPos.copy(shipPos).add(new THREE.Vector3(2.6, 1.1, 3.8));
       this.camTargetLookAt.copy(shipPos);
+      this.targetUp.set(0.0, 1.0, 0.0);
     } else if (mode === 'miller') {
       const pPos = this.millersPlanet.getWorldPosition();
       this.camTargetPos.copy(pPos).add(new THREE.Vector3(2.2, 0.9, 3.2));
       this.camTargetLookAt.copy(pPos);
+      this.targetUp.set(0.0, 1.0, 0.0);
     } else if (mode === 'infall') {
-      this.camTargetPos.set(0, 0.32, 3.2);
-      this.camTargetLookAt.set(0, 0, 0);
+      this.camTargetPos.set(0.0, 0.32, 3.2);
+      this.camTargetLookAt.set(0.0, 0.0, 0.0);
+      this.targetUp.set(0.0, 1.0, 0.0);
     } else if (mode === 'polar') {
-      this.camTargetPos.set(0, 22.0, 0.05);
-      this.camTargetLookAt.set(0, 0, 0);
+      this.camTargetPos.set(0.0, 22.0, 0.05);
+      this.camTargetLookAt.set(0.0, 0.0, 0.0);
+      this.targetUp.set(0.0, 1.0, 0.0);
     }
   }
 
@@ -212,13 +226,13 @@ class InterstellarApp {
 
       // Update accretion light color to match disk
       if (scheme === 0) {
-        this.accretionLight.color.setHex(0xff9922); // Gold
+        this.accretionLight.color.setHex(0xff9922); // Copper/Gold
       } else if (scheme === 1) {
-        this.accretionLight.color.setHex(0x00d5ff); // Cyan
+        this.accretionLight.color.setHex(0xffaa33); // Classic Gold
       } else if (scheme === 2) {
-        this.accretionLight.color.setHex(0xd044ff); // Ultraviolet
+        this.accretionLight.color.setHex(0x00d5ff); // Cyan
       } else if (scheme === 3) {
-        this.accretionLight.color.setHex(0xff2233); // Crimson
+        this.accretionLight.color.setHex(0xd044ff); // Ultraviolet
       } else {
         this.accretionLight.color.setHex(0xffffff); // White
       }
@@ -261,14 +275,17 @@ class InterstellarApp {
       const desiredPos = shipPos.clone().add(new THREE.Vector3(2.8, 1.2, 3.5));
       this.camera.position.lerp(desiredPos, delta * 3.0);
       this.controls.target.lerp(shipPos, delta * 4.0);
+      this.camera.up.lerp(this.targetUp, delta * 2.5);
     } else if (this.cameraMode === 'miller') {
       const pPos = this.millersPlanet.getWorldPosition();
       const desiredPos = pPos.clone().add(new THREE.Vector3(2.4, 0.8, 3.2));
       this.camera.position.lerp(desiredPos, delta * 3.0);
       this.controls.target.lerp(pPos, delta * 4.0);
+      this.camera.up.lerp(this.targetUp, delta * 2.5);
     } else if (this.cameraMode !== 'free') {
-      this.camera.position.lerp(this.camTargetPos, delta * 2.2);
-      this.controls.target.lerp(this.camTargetLookAt, delta * 2.5);
+      this.camera.position.lerp(this.camTargetPos, delta * 2.5);
+      this.controls.target.lerp(this.camTargetLookAt, delta * 2.8);
+      this.camera.up.lerp(this.targetUp, delta * 2.5);
     }
 
     this.controls.update();
