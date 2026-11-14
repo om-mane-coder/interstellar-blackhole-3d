@@ -1,7 +1,7 @@
 /**
  * Interstellar Official Soundtrack Engine - "Cornfield Chase" by Hans Zimmer
  * Dedicated background soundtrack audio player with Web Audio API real-time FFT frequency
- * analysis and synchronized 1.25s Miller's Planet acoustic time dilation ticking.
+ * analysis. Plays exclusively the official master recording of Cornfield Chase.
  * Official Video: https://youtu.be/JuSsvM8B4Jc
  */
 
@@ -14,8 +14,6 @@ export class SpaceAudio {
     this.gainNode = null;
     this.isPlaying = false;
     this.volume = 0.8;
-    this.timeTickEnabled = true;
-    this.tickInterval = null;
 
     this.track = {
       title: 'Cornfield Chase',
@@ -70,8 +68,6 @@ export class SpaceAudio {
         console.warn('Playback error (interaction required):', err);
       });
     }
-
-    this.startTimeTick();
   }
 
   stop() {
@@ -79,11 +75,6 @@ export class SpaceAudio {
       this.audioElement.pause();
     }
     this.isPlaying = false;
-
-    if (this.tickInterval) {
-      clearInterval(this.tickInterval);
-      this.tickInterval = null;
-    }
   }
 
   toggle() {
@@ -107,34 +98,6 @@ export class SpaceAudio {
     if (this.audioElement) {
       this.audioElement.volume = this.volume;
     }
-  }
-
-  // Interstellar Relativistic Time Dilation Tick (1.25s pulse = 1 Earth day on Miller's planet)
-  startTimeTick() {
-    if (this.tickInterval) return;
-
-    const playTick = () => {
-      if (!this.isPlaying || !this.timeTickEnabled || !this.ctx) return;
-      const now = this.ctx.currentTime;
-
-      // Resonant woodblock / clock click
-      const osc = this.ctx.createOscillator();
-      osc.type = 'sine';
-      osc.frequency.setValueAtTime(880, now);
-      osc.frequency.exponentialRampToValueAtTime(140, now + 0.045);
-
-      const tickGain = this.ctx.createGain();
-      tickGain.gain.setValueAtTime(0.22 * this.volume, now);
-      tickGain.gain.exponentialRampToValueAtTime(0.001, now + 0.045);
-
-      osc.connect(tickGain);
-      tickGain.connect(this.ctx.destination);
-
-      osc.start(now);
-      osc.stop(now + 0.05);
-    };
-
-    this.tickInterval = setInterval(playTick, 1250);
   }
 
   getVisualizerData() {

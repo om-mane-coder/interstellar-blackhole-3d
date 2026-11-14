@@ -79,7 +79,6 @@ export class HUD {
       togglePlanet: document.getElementById('toggle-planet'),
       toggleAsteroids: document.getElementById('toggle-asteroids'),
       toggleStreams: document.getElementById('toggle-streams'),
-      toggleTicks: document.getElementById('toggle-ticks'),
 
       // Quality selector
       selectQuality: document.getElementById('select-quality'),
@@ -262,12 +261,6 @@ export class HUD {
     if (this.dom.toggleStreams) {
       this.dom.toggleStreams.addEventListener('change', (e) => {
         if (this.app.geodesicStreams) this.app.geodesicStreams.setVisible(e.target.checked);
-      });
-    }
-
-    if (this.dom.toggleTicks) {
-      this.dom.toggleTicks.addEventListener('change', (e) => {
-        if (this.app.audio) this.app.audio.timeTickEnabled = e.target.checked;
       });
     }
 
