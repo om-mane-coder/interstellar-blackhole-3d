@@ -1,8 +1,8 @@
 /**
- * Interstellar Original Soundtrack Player & Web Audio Engine
- * Plays the original Hans Zimmer soundtrack recordings ("Main Theme / First Step",
- * "Cornfield Chase", "No Time For Caution") with live Web Audio API frequency analysis
- * and synchronized 1.25s Miller's Planet acoustic time-dilation ticking.
+ * Interstellar Official Soundtrack Engine - "Cornfield Chase" by Hans Zimmer
+ * Dedicated background soundtrack audio player with Web Audio API real-time FFT frequency
+ * analysis and synchronized 1.25s Miller's Planet acoustic time dilation ticking.
+ * Official Video: https://youtu.be/JuSsvM8B4Jc
  */
 
 export class SpaceAudio {
@@ -13,32 +13,17 @@ export class SpaceAudio {
     this.analyser = null;
     this.gainNode = null;
     this.isPlaying = false;
-    this.volume = 0.75;
+    this.volume = 0.8;
     this.timeTickEnabled = true;
     this.tickInterval = null;
 
-    this.tracks = [
-      {
-        id: 'main-theme',
-        title: 'Main Theme (Day One / First Step)',
-        artist: 'Hans Zimmer',
-        src: './audio/interstellar-main-theme.mp3'
-      },
-      {
-        id: 'cornfield-chase',
-        title: 'Cornfield Chase',
-        artist: 'Hans Zimmer',
-        src: './audio/cornfield-chase.mp3'
-      },
-      {
-        id: 'no-time-for-caution',
-        title: 'No Time For Caution (Docking Scene)',
-        artist: 'Hans Zimmer',
-        src: './audio/no-time-for-caution.mp3'
-      }
-    ];
-
-    this.currentTrackIndex = 0;
+    this.track = {
+      title: 'Cornfield Chase',
+      artist: 'Hans Zimmer',
+      label: 'WaterTower Music // Official Interstellar Soundtrack',
+      youtubeUrl: 'https://youtu.be/JuSsvM8B4Jc',
+      src: './audio/cornfield-chase.mp3'
+    };
   }
 
   init() {
@@ -47,14 +32,14 @@ export class SpaceAudio {
     const AudioContext = window.AudioContext || window.webkitAudioContext;
     this.ctx = new AudioContext();
 
-    // Create HTML5 Audio Element for original soundtrack playback
+    // Create HTML5 Audio Element for Cornfield Chase background playback
     this.audioElement = new Audio();
-    this.audioElement.src = this.tracks[this.currentTrackIndex].src;
+    this.audioElement.src = this.track.src;
     this.audioElement.loop = true;
     this.audioElement.preload = 'auto';
     this.audioElement.crossOrigin = 'anonymous';
 
-    // Hook HTML5 Audio into Web Audio API graph for real-time FFT visualizer
+    // Hook HTML5 Audio into Web Audio API graph for real-time FFT frequency visualizer
     try {
       this.mediaSource = this.ctx.createMediaElementSource(this.audioElement);
       this.gainNode = this.ctx.createGain();
@@ -82,7 +67,7 @@ export class SpaceAudio {
       this.audioElement.play().then(() => {
         this.isPlaying = true;
       }).catch(err => {
-        console.warn('Playback error:', err);
+        console.warn('Playback error (interaction required):', err);
       });
     }
 
@@ -110,34 +95,8 @@ export class SpaceAudio {
     return this.isPlaying;
   }
 
-  setTrack(index) {
-    if (index < 0 || index >= this.tracks.length) return;
-    this.currentTrackIndex = index;
-
-    if (this.audioElement) {
-      const wasPlaying = this.isPlaying;
-      this.audioElement.src = this.tracks[this.currentTrackIndex].src;
-      this.audioElement.load();
-      if (wasPlaying) {
-        this.audioElement.play().catch(e => console.warn(e));
-      }
-    }
-  }
-
-  nextTrack() {
-    const nextIdx = (this.currentTrackIndex + 1) % this.tracks.length;
-    this.setTrack(nextIdx);
-    return this.getCurrentTrack();
-  }
-
-  prevTrack() {
-    const prevIdx = (this.currentTrackIndex - 1 + this.tracks.length) % this.tracks.length;
-    this.setTrack(prevIdx);
-    return this.getCurrentTrack();
-  }
-
   getCurrentTrack() {
-    return this.tracks[this.currentTrackIndex];
+    return this.track;
   }
 
   setVolume(val) {
@@ -165,7 +124,7 @@ export class SpaceAudio {
       osc.frequency.exponentialRampToValueAtTime(140, now + 0.045);
 
       const tickGain = this.ctx.createGain();
-      tickGain.gain.setValueAtTime(0.25 * this.volume, now);
+      tickGain.gain.setValueAtTime(0.22 * this.volume, now);
       tickGain.gain.exponentialRampToValueAtTime(0.001, now + 0.045);
 
       osc.connect(tickGain);

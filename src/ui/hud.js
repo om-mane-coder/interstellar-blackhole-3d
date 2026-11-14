@@ -1,6 +1,6 @@
 /**
  * HUD & Interactive UI Controller (Responsive & Mobile-Optimized)
- * Binds UI inputs to black hole shader uniforms, 3D objects, original soundtrack player, and camera modes.
+ * Binds UI inputs to black hole shader uniforms, 3D objects, Cornfield Chase audio player, and camera modes.
  */
 
 export class HUD {
@@ -14,21 +14,12 @@ export class HUD {
 
   initElements() {
     this.dom = {
-      // Audio Desktop
+      // Audio
       audioBtn: document.getElementById('btn-audio'),
       audioBars: document.querySelectorAll('.audio-bar'),
-      trackTitle: document.getElementById('audio-track-title'),
-      prevTrackBtn: document.getElementById('btn-track-prev'),
-      nextTrackBtn: document.getElementById('btn-track-next'),
-      trackSelect: document.getElementById('select-soundtrack'),
+      mobileAudioPill: document.getElementById('mobile-audio-pill'),
       sliderVolume: document.getElementById('slider-volume'),
       valVolume: document.getElementById('val-volume'),
-
-      // Audio Mobile
-      mobileAudioPill: document.getElementById('mobile-audio-pill'),
-      mobTrackTitle: document.getElementById('mob-track-title'),
-      btnMobPrev: document.getElementById('btn-mob-prev'),
-      btnMobNext: document.getElementById('btn-mob-next'),
 
       // Cinemascope
       cinemascopeBtn: document.getElementById('btn-cinemascope'),
@@ -102,68 +93,15 @@ export class HUD {
       this.updateAudioButtonState(playing);
     };
 
-    this.dom.audioBtn.addEventListener('click', handleAudioToggle);
-
-    // Track Navigation (Desktop)
-    if (this.dom.prevTrackBtn) {
-      this.dom.prevTrackBtn.addEventListener('click', (e) => {
-        e.stopPropagation();
-        const trk = this.app.audio.prevTrack();
-        this.updateTrackDisplay(trk);
-        if (this.dom.trackSelect) {
-          this.dom.trackSelect.value = this.app.audio.currentTrackIndex;
-        }
-      });
-    }
-
-    if (this.dom.nextTrackBtn) {
-      this.dom.nextTrackBtn.addEventListener('click', (e) => {
-        e.stopPropagation();
-        const trk = this.app.audio.nextTrack();
-        this.updateTrackDisplay(trk);
-        if (this.dom.trackSelect) {
-          this.dom.trackSelect.value = this.app.audio.currentTrackIndex;
-        }
-      });
-    }
-
-    // Track Navigation (Mobile Pill)
-    if (this.dom.btnMobPrev) {
-      this.dom.btnMobPrev.addEventListener('click', (e) => {
-        e.stopPropagation();
-        const trk = this.app.audio.prevTrack();
-        this.updateTrackDisplay(trk);
-        if (this.dom.trackSelect) {
-          this.dom.trackSelect.value = this.app.audio.currentTrackIndex;
-        }
-      });
-    }
-
-    if (this.dom.btnMobNext) {
-      this.dom.btnMobNext.addEventListener('click', (e) => {
-        e.stopPropagation();
-        const trk = this.app.audio.nextTrack();
-        this.updateTrackDisplay(trk);
-        if (this.dom.trackSelect) {
-          this.dom.trackSelect.value = this.app.audio.currentTrackIndex;
-        }
-      });
+    if (this.dom.audioBtn) {
+      this.dom.audioBtn.addEventListener('click', handleAudioToggle);
     }
 
     if (this.dom.mobileAudioPill) {
       this.dom.mobileAudioPill.addEventListener('click', (e) => {
-        // If clicked on title text, toggle play/pause
-        if (e.target.closest('.mob-audio-content')) {
-          handleAudioToggle();
-        }
-      });
-    }
-
-    if (this.dom.trackSelect) {
-      this.dom.trackSelect.addEventListener('change', (e) => {
-        const idx = parseInt(e.target.value, 10);
-        this.app.audio.setTrack(idx);
-        this.updateTrackDisplay(this.app.audio.getCurrentTrack());
+        // Do not toggle if clicked on external youtube link
+        if (e.target.closest('a')) return;
+        handleAudioToggle();
       });
     }
 
@@ -187,30 +125,40 @@ export class HUD {
     }
 
     // 3. Settings Drawer / Mobile Bottom Sheet
-    this.dom.settingsBtn.addEventListener('click', () => {
-      this.dom.controlsPanel.classList.toggle('collapsed');
-      this.dom.settingsBtn.classList.toggle('active', !this.dom.controlsPanel.classList.contains('collapsed'));
-    });
+    if (this.dom.settingsBtn) {
+      this.dom.settingsBtn.addEventListener('click', () => {
+        this.dom.controlsPanel.classList.toggle('collapsed');
+        this.dom.settingsBtn.classList.toggle('active', !this.dom.controlsPanel.classList.contains('collapsed'));
+      });
+    }
 
-    this.dom.panelCloseBtn.addEventListener('click', () => {
-      this.dom.controlsPanel.classList.add('collapsed');
-      this.dom.settingsBtn.classList.remove('active');
-    });
+    if (this.dom.panelCloseBtn) {
+      this.dom.panelCloseBtn.addEventListener('click', () => {
+        this.dom.controlsPanel.classList.add('collapsed');
+        this.dom.settingsBtn.classList.remove('active');
+      });
+    }
 
     // 4. Science Modal
-    this.dom.scienceBtn.addEventListener('click', () => {
-      this.dom.scienceModal.classList.add('active');
-    });
+    if (this.dom.scienceBtn) {
+      this.dom.scienceBtn.addEventListener('click', () => {
+        this.dom.scienceModal.classList.add('active');
+      });
+    }
 
-    this.dom.modalCloseBtn.addEventListener('click', () => {
-      this.dom.scienceModal.classList.remove('active');
-    });
-
-    this.dom.scienceModal.addEventListener('click', (e) => {
-      if (e.target === this.dom.scienceModal) {
+    if (this.dom.modalCloseBtn) {
+      this.dom.modalCloseBtn.addEventListener('click', () => {
         this.dom.scienceModal.classList.remove('active');
-      }
-    });
+      });
+    }
+
+    if (this.dom.scienceModal) {
+      this.dom.scienceModal.addEventListener('click', (e) => {
+        if (e.target === this.dom.scienceModal) {
+          this.dom.scienceModal.classList.remove('active');
+        }
+      });
+    }
 
     // 5. Camera Presets
     this.dom.camBtns.forEach(btn => {
@@ -276,38 +224,52 @@ export class HUD {
     });
 
     // 8. Toggles
-    this.dom.toggleDoppler.addEventListener('change', (e) => {
-      this.app.shaderMaterial.uniforms.u_dopplerEnabled.value = e.target.checked ? 1 : 0;
-    });
+    if (this.dom.toggleDoppler) {
+      this.dom.toggleDoppler.addEventListener('change', (e) => {
+        this.app.shaderMaterial.uniforms.u_dopplerEnabled.value = e.target.checked ? 1 : 0;
+      });
+    }
 
-    this.dom.toggleRedshift.addEventListener('change', (e) => {
-      this.app.shaderMaterial.uniforms.u_redshiftEnabled.value = e.target.checked ? 1 : 0;
-    });
+    if (this.dom.toggleRedshift) {
+      this.dom.toggleRedshift.addEventListener('change', (e) => {
+        this.app.shaderMaterial.uniforms.u_redshiftEnabled.value = e.target.checked ? 1 : 0;
+      });
+    }
 
-    this.dom.toggleShip.addEventListener('change', (e) => {
-      if (this.app.endurance) this.app.endurance.group.visible = e.target.checked;
-    });
+    if (this.dom.toggleShip) {
+      this.dom.toggleShip.addEventListener('change', (e) => {
+        if (this.app.endurance) this.app.endurance.group.visible = e.target.checked;
+      });
+    }
 
-    this.dom.togglePlanet.addEventListener('change', (e) => {
-      if (this.app.millersPlanet) {
-        this.app.millersPlanet.group.visible = e.target.checked;
-        if (this.app.millersPlanet.orbitLine) {
-          this.app.millersPlanet.orbitLine.visible = e.target.checked;
+    if (this.dom.togglePlanet) {
+      this.dom.togglePlanet.addEventListener('change', (e) => {
+        if (this.app.millersPlanet) {
+          this.app.millersPlanet.group.visible = e.target.checked;
+          if (this.app.millersPlanet.orbitLine) {
+            this.app.millersPlanet.orbitLine.visible = e.target.checked;
+          }
         }
-      }
-    });
+      });
+    }
 
-    this.dom.toggleAsteroids.addEventListener('change', (e) => {
-      if (this.app.asteroidBelt) this.app.asteroidBelt.instancedMesh.visible = e.target.checked;
-    });
+    if (this.dom.toggleAsteroids) {
+      this.dom.toggleAsteroids.addEventListener('change', (e) => {
+        if (this.app.asteroidBelt) this.app.asteroidBelt.instancedMesh.visible = e.target.checked;
+      });
+    }
 
-    this.dom.toggleStreams.addEventListener('change', (e) => {
-      if (this.app.geodesicStreams) this.app.geodesicStreams.setVisible(e.target.checked);
-    });
+    if (this.dom.toggleStreams) {
+      this.dom.toggleStreams.addEventListener('change', (e) => {
+        if (this.app.geodesicStreams) this.app.geodesicStreams.setVisible(e.target.checked);
+      });
+    }
 
-    this.dom.toggleTicks.addEventListener('change', (e) => {
-      if (this.app.audio) this.app.audio.timeTickEnabled = e.target.checked;
-    });
+    if (this.dom.toggleTicks) {
+      this.dom.toggleTicks.addEventListener('change', (e) => {
+        if (this.app.audio) this.app.audio.timeTickEnabled = e.target.checked;
+      });
+    }
 
     // 9. Quality Mode
     if (this.dom.selectQuality) {
@@ -335,7 +297,6 @@ export class HUD {
   }
 
   initTouchGestures() {
-    // Swipe down on mobile bottom sheet to dismiss
     let touchStartY = 0;
     if (this.dom.controlsPanel) {
       this.dom.controlsPanel.addEventListener('touchstart', (e) => {
@@ -345,10 +306,9 @@ export class HUD {
       this.dom.controlsPanel.addEventListener('touchmove', (e) => {
         const touchCurrentY = e.touches[0].clientY;
         const diff = touchCurrentY - touchStartY;
-        // If swiping down from near top of drawer
         if (diff > 70 && this.dom.controlsPanel.scrollTop <= 10) {
           this.dom.controlsPanel.classList.add('collapsed');
-          this.dom.settingsBtn.classList.remove('active');
+          if (this.dom.settingsBtn) this.dom.settingsBtn.classList.remove('active');
         }
       }, { passive: true });
     }
@@ -356,32 +316,18 @@ export class HUD {
     if (this.dom.drawerDragHandle) {
       this.dom.drawerDragHandle.addEventListener('click', () => {
         this.dom.controlsPanel.classList.add('collapsed');
-        this.dom.settingsBtn.classList.remove('active');
+        if (this.dom.settingsBtn) this.dom.settingsBtn.classList.remove('active');
       });
     }
   }
 
   updateAudioButtonState(playing) {
     if (playing) {
-      this.dom.audioBtn.classList.add('active');
-      const label = this.dom.audioBtn.querySelector('.btn-label');
-      if (label) label.textContent = 'OST';
+      if (this.dom.audioBtn) this.dom.audioBtn.classList.add('active');
       if (this.dom.mobileAudioPill) this.dom.mobileAudioPill.classList.add('playing');
     } else {
-      this.dom.audioBtn.classList.remove('active');
-      const label = this.dom.audioBtn.querySelector('.btn-label');
-      if (label) label.textContent = 'OST';
+      if (this.dom.audioBtn) this.dom.audioBtn.classList.remove('active');
       if (this.dom.mobileAudioPill) this.dom.mobileAudioPill.classList.remove('playing');
-    }
-  }
-
-  updateTrackDisplay(track) {
-    if (!track) return;
-    if (this.dom.trackTitle) {
-      this.dom.trackTitle.textContent = `${track.artist} - ${track.title}`;
-    }
-    if (this.dom.mobTrackTitle) {
-      this.dom.mobTrackTitle.textContent = `${track.title}`;
     }
   }
 
@@ -420,7 +366,6 @@ export class HUD {
       this.dom.distVal.textContent = `${distInRs} Rs (${au} AU)`;
     }
 
-    // Calculate General Relativistic Time Dilation
     if (dist > Rs * 1.02) {
       const dilationFactor = 1.0 / Math.sqrt(1.0 - Rs / dist);
       if (this.dom.dilationVal) {

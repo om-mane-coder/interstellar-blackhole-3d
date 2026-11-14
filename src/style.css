@@ -218,9 +218,113 @@ body.cinemascope-active .cinemascope-bar {
 .audio-track-info {
   display: flex;
   flex-direction: column;
-  min-width: 160px;
-  max-width: 210px;
+  min-width: 170px;
+  max-width: 230px;
   overflow: hidden;
+}
+
+.audio-yt-link {
+  color: #ff3344;
+  opacity: 0.8;
+  padding: 6px;
+  border-radius: 4px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s ease;
+  text-decoration: none;
+}
+
+.audio-yt-link:hover {
+  opacity: 1;
+  background: rgba(255, 51, 68, 0.15);
+  transform: scale(1.15);
+}
+
+.mob-yt-link {
+  color: #ff3344;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 4px;
+  text-decoration: none;
+  opacity: 0.85;
+}
+
+.mob-yt-link:active {
+  opacity: 1;
+  transform: scale(1.2);
+}
+
+/* Audio Card in Controls Drawer */
+.audio-card {
+  background: rgba(14, 20, 32, 0.7);
+  border: 1px solid rgba(245, 166, 35, 0.25);
+  border-radius: 10px;
+  padding: 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.audio-card-header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.audio-card-icon {
+  font-size: 1.4rem;
+  width: 38px;
+  height: 38px;
+  background: rgba(245, 166, 35, 0.15);
+  border: 1px solid rgba(245, 166, 35, 0.3);
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.audio-card-text {
+  display: flex;
+  flex-direction: column;
+}
+
+.audio-card-title {
+  font-family: 'Space Grotesk', sans-serif;
+  font-weight: 700;
+  font-size: 0.88rem;
+  color: #fff;
+}
+
+.audio-card-artist {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 0.68rem;
+  color: var(--accent-gold);
+}
+
+.yt-badge-link {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  background: rgba(255, 0, 0, 0.1);
+  border: 1px solid rgba(255, 0, 0, 0.25);
+  border-radius: 6px;
+  padding: 6px 10px;
+  color: #ff8888;
+  font-size: 0.72rem;
+  font-family: 'Space Grotesk', sans-serif;
+  font-weight: 600;
+  text-decoration: none;
+  transition: all 0.2s ease;
+  width: fit-content;
+}
+
+.yt-badge-link:hover, .yt-badge-link:active {
+  background: rgba(255, 0, 0, 0.2);
+  color: #fff;
+  border-color: rgba(255, 0, 0, 0.5);
 }
 
 .audio-badge {

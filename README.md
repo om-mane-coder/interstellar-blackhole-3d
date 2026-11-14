@@ -18,12 +18,10 @@ Built with **Three.js**, **GLSL Kerr-Schwarzschild Relativistic Raymarching Shad
 - **Anamorphic Lens Flare & Bloom**: Recreates the Panavision 70mm IMAX horizontal optical streak across the ultra-hot incandescent core.
 - **Concentric Density Striations**: Differential Keplerian shear ($\omega \sim r^{-1.5}$) creates fine orbital density rings and plasma ripples.
 
-### 2. Original Hans Zimmer Soundtrack Player
-- **Master Audio Recordings**:
-  1. *Main Theme (Day One / First Step)* — The iconic cathedral organ and piano theme.
-  2. *Cornfield Chase* — Fast, soaring, poignant orchestral arrangement.
-  3. *No Time For Caution* — The legendary docking scene track.
-- **Header Player Bar**: Previous track `[⏮]`, Next track `[⏭]`, and Play/Pause `[▶/⏸]` buttons with a real-time audio FFT visualizer that dances directly to Hans Zimmer's original score.
+### 2. Dedicated Official Background Music (Hans Zimmer)
+- **"Cornfield Chase" by Hans Zimmer** ([WaterTower Music Official Video](https://youtu.be/JuSsvM8B4Jc))
+- Plays as the dedicated background music with seamless looping.
+- **Real-Time Web Audio API Visualizer**: Animated equalizer bars in the header pulse and dance to the actual frequencies of Cornfield Chase.
 - **Relativistic 1.25s Ticking**: Synchronized acoustic pulse where each tick marks 1 day passing on Earth (as on Miller's planet).
 
 ### 3. The Outer Space Region

@@ -50,27 +50,28 @@
         </div>
       </div>
 
-      <!-- Original Soundtrack Player Bar in Header (Desktop) -->
+      <!-- Background Music Indicator in Header (Desktop) -->
       <div class="audio-player-bar desktop-only">
-        <button id="btn-track-prev" class="audio-nav-btn" title="Previous Track" aria-label="Previous Track">⏮</button>
         <div class="audio-track-info">
-          <span class="audio-badge">ORIGINAL OST</span>
-          <span id="audio-track-title" class="audio-title-marquee">Hans Zimmer - Main Theme (First Step)</span>
+          <span class="audio-badge">BACKGROUND MUSIC</span>
+          <span class="audio-title-marquee">Hans Zimmer — Cornfield Chase</span>
         </div>
-        <button id="btn-track-next" class="audio-nav-btn" title="Next Track" aria-label="Next Track">⏭</button>
+        <a href="https://youtu.be/JuSsvM8B4Jc" target="_blank" rel="noopener noreferrer" class="audio-yt-link" title="Open Official Music Video on YouTube">
+          <svg viewBox="0 0 24 24" width="16" height="16" fill="currentColor"><path d="M23.498 6.186a3.016 3.016 0 0 0-2.122-2.136C19.505 3.545 12 3.545 12 3.545s-7.505 0-9.377.505A3.017 3.017 0 0 0 .502 6.186C0 8.07 0 12 0 12s0 3.93.502 5.814a3.016 3.016 0 0 0 2.122 2.136c1.871.505 9.376.505 9.376.505s7.505 0 9.377-.505a3.015 3.015 0 0 0 2.122-2.136C24 15.93 24 12 24 12s0-3.93-.502-5.814zM9.545 15.568V8.432L15.818 12l-6.273 3.568z"/></svg>
+        </a>
       </div>
 
       <!-- Action Buttons -->
       <div class="hud-actions">
         <!-- Audio Play/Pause Button with FFT Visualizer -->
-        <button id="btn-audio" class="hud-btn" title="Play Original Interstellar Soundtrack" aria-label="Toggle Soundtrack">
+        <button id="btn-audio" class="hud-btn" title="Toggle Background Music (Cornfield Chase)" aria-label="Toggle Soundtrack">
           <div class="audio-viz">
             <span class="audio-bar"></span>
             <span class="audio-bar"></span>
             <span class="audio-bar"></span>
             <span class="audio-bar"></span>
           </div>
-          <span class="btn-label">OST</span>
+          <span class="btn-label">MUSIC</span>
         </button>
 
         <!-- Cinemascope Toggle (Desktop / Tablet) -->
@@ -93,12 +94,11 @@
 
     <!-- Mobile Floating Soundtrack Control Pill (Shows on mobile & tablet) -->
     <div id="mobile-audio-pill" class="mobile-audio-pill">
-      <button id="btn-mob-prev" class="mob-audio-nav" title="Previous Track">⏮</button>
-      <div class="mob-audio-content">
-        <span class="mob-audio-badge">OST</span>
-        <span id="mob-track-title" class="mob-audio-text">Hans Zimmer - Main Theme</span>
-      </div>
-      <button id="btn-mob-next" class="mob-audio-nav" title="Next Track">⏭</button>
+      <span class="mob-audio-badge">MUSIC</span>
+      <span class="mob-audio-text">Hans Zimmer — Cornfield Chase</span>
+      <a href="https://youtu.be/JuSsvM8B4Jc" target="_blank" rel="noopener noreferrer" class="mob-yt-link" title="Open on YouTube">
+        <svg viewBox="0 0 24 24" width="14" height="14" fill="currentColor"><path d="M23.498 6.186a3.016 3.016 0 0 0-2.122-2.136C19.505 3.545 12 3.545 12 3.545s-7.505 0-9.377.505A3.017 3.017 0 0 0 .502 6.186C0 8.07 0 12 0 12s0 3.93.502 5.814a3.016 3.016 0 0 0 2.122 2.136c1.871.505 9.376.505 9.376.505s7.505 0 9.377-.505a3.015 3.015 0 0 0 2.122-2.136C24 15.93 24 12 24 12s0-3.93-.502-5.814zM9.545 15.568V8.432L15.818 12l-6.273 3.568z"/></svg>
+      </a>
     </div>
 
     <!-- Bottom Bar: Camera Presets & Time Dilation Pill -->
@@ -133,27 +133,30 @@
       <button id="btn-panel-close" class="panel-close-btn" aria-label="Close Controls">&times;</button>
     </div>
 
-    <!-- Original Soundtrack Section -->
+    <!-- Background Music Section -->
     <div class="control-section">
-      <div class="section-label">Original Soundtrack (Hans Zimmer)</div>
+      <div class="section-label">Background Music</div>
       
-      <div class="control-row">
-        <div class="control-row-header">
-          <span>Soundtrack Track</span>
+      <div class="audio-card">
+        <div class="audio-card-header">
+          <div class="audio-card-icon">🎵</div>
+          <div class="audio-card-text">
+            <span class="audio-card-title">Cornfield Chase</span>
+            <span class="audio-card-artist">Hans Zimmer // Interstellar OST</span>
+          </div>
         </div>
-        <select id="select-soundtrack">
-          <option value="0" selected>1. Main Theme (Day One / First Step)</option>
-          <option value="1">2. Cornfield Chase</option>
-          <option value="2">3. No Time For Caution (Docking Scene)</option>
-        </select>
+        <a href="https://youtu.be/JuSsvM8B4Jc" target="_blank" rel="noopener noreferrer" class="yt-badge-link">
+          <svg viewBox="0 0 24 24" width="14" height="14" fill="#ff0000"><path d="M23.498 6.186a3.016 3.016 0 0 0-2.122-2.136C19.505 3.545 12 3.545 12 3.545s-7.505 0-9.377.505A3.017 3.017 0 0 0 .502 6.186C0 8.07 0 12 0 12s0 3.93.502 5.814a3.016 3.016 0 0 0 2.122 2.136c1.871.505 9.376.505 9.376.505s7.505 0 9.377-.505a3.015 3.015 0 0 0 2.122-2.136C24 15.93 24 12 24 12s0-3.93-.502-5.814zM9.545 15.568V8.432L15.818 12l-6.273 3.568z"/></svg>
+          <span>Official Music Video (YouTube)</span>
+        </a>
       </div>
 
-      <div class="control-row">
+      <div class="control-row" style="margin-top: 14px;">
         <div class="control-row-header">
           <span>Master Volume</span>
-          <span id="val-volume" class="control-value">75%</span>
+          <span id="val-volume" class="control-value">80%</span>
         </div>
-        <input type="range" id="slider-volume" min="0" max="1" step="0.05" value="0.75" />
+        <input type="range" id="slider-volume" min="0" max="1" step="0.05" value="0.8" />
       </div>
 
       <div class="toggle-row">
