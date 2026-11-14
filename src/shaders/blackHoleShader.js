@@ -1,12 +1,9 @@
 /**
  * Movie-Precise Interstellar Gargantua Raymarching Shader
- * Matches the exact visual composition of the iconic movie shot:
- * - Dual-tone contrast: Warm fibrous copper/amber front band vs. brilliant silver-blue/ice-white rear lensed halo.
- * - Razor-thin, needle-sharp silver-white photon ring circling the event horizon shadow.
- * - High-frequency concentric spun-silk striations (fine circular thread filaments).
- * - Longitudinal dark dust lanes along the front accretion stream.
- * - Blinding incandescent white convergence hotspot at the top nexus.
- * - Kerr metric frame-dragging and gravitational lensing.
+ * Implements Kerr-Schwarzschild null geodesics with frame-dragging,
+ * volumetric accretion disk with Keplerian differential shear, concentric density striations,
+ * relativistic Doppler boosting calibrated to Christopher Nolan's visual aesthetic,
+ * gravitational redshift, razor-sharp photon ring, and anamorphic lens bloom.
  */
 
 export const BlackHoleShader = {
@@ -17,19 +14,19 @@ export const BlackHoleShader = {
     u_invView: { value: null },
     u_cameraPos: { value: null },
     u_radius: { value: 1.0 },              // Schwarzschild radius Rs
-    u_diskInner: { value: 2.3 },           // Inner disk rim (ISCO)
-    u_diskOuter: { value: 14.2 },          // Outer disk rim
+    u_diskInner: { value: 2.35 },          // Inner disk rim (ISCO)
+    u_diskOuter: { value: 13.8 },          // Outer disk rim
     u_lensStrength: { value: 1.0 },        // General relativity deflection multiplier
-    u_spinSpeed: { value: 0.7 },           // Accretion disk rotation rate
-    u_diskBrightness: { value: 1.75 },     // Exposure multiplier
-    u_diskDensity: { value: 1.3 },         // Volumetric optical density
-    u_diskThickness: { value: 0.035 },     // Scale height H/R
+    u_spinSpeed: { value: 0.75 },          // Accretion disk rotation rate
+    u_diskBrightness: { value: 1.6 },      // Exposure multiplier
+    u_diskDensity: { value: 1.15 },        // Volumetric optical density
+    u_diskThickness: { value: 0.038 },     // Scale height H/R
     u_dopplerEnabled: { value: 1 },        // Relativistic Doppler beaming
     u_redshiftEnabled: { value: 1 },       // Gravitational redshift
-    u_colorScheme: { value: 0 },           // 0: Movie Iconic (Copper + Silver Blue), 1: Gold, 2: Cyan, 3: UV, 4: Pure White
-    u_starIntensity: { value: 0.9 },       // Background starfield brightness
-    u_nebulaIntensity: { value: 0.6 },     // Deep space nebula glow
-    u_maxSteps: { value: 160 },            // Max raymarching steps
+    u_colorScheme: { value: 0 },           // 0: Movie Gargantua Gold, 1: Cyan, 2: UV Blazar, 3: Crimson, 4: Pure White
+    u_starIntensity: { value: 1.2 },       // Background starfield brightness
+    u_nebulaIntensity: { value: 1.0 },     // Deep space nebula glow
+    u_maxSteps: { value: 140 },            // Max raymarching steps
     u_qualityScale: { value: 1.0 }         // Step multiplier
   },
 
@@ -70,7 +67,7 @@ export const BlackHoleShader = {
 
     #define PI 3.14159265358979323846
 
-    // --- Fast Hash & Noise ---
+    // --- Fast Procedural Hash & Noise ---
     float hash12(vec2 p) {
       vec3 p3 = fract(vec3(p.xyx) * 0.1031);
       p3 += dot(p3, p3.yzx + 33.33);
@@ -119,75 +116,66 @@ export const BlackHoleShader = {
       );
     }
 
-    // High frequency plasma turbulence
+    // High-resolution multi-scale plasma turbulence
     float fbmPlasma(vec2 uv) {
       float v = 0.0;
       float a = 0.52;
-      mat2 rot = mat2(cos(0.48), sin(0.48), -sin(0.48), cos(0.48));
+      mat2 rot = mat2(cos(0.45), sin(0.45), -sin(0.45), cos(0.45));
       for (int i = 0; i < 5; i++) {
         v += a * noise2D(uv);
-        uv = rot * uv * 2.25 + vec2(1.8, 3.9);
-        a *= 0.47;
+        uv = rot * uv * 2.22 + vec2(1.9, 3.7);
+        a *= 0.48;
       }
       return v;
     }
 
-    // --- Dual-Tone Color Palette (Movie Reference: Copper Front + Silver-Blue Rear) ---
-    vec3 getAccretionColor(float rNorm, float isFront, float dopplerFactor, float redshiftFactor) {
+    // --- Gargantua Accretion Color Palette (Calibrated to Interstellar) ---
+    vec3 getAccretionColor(float rNorm, float dopplerFactor, float redshiftFactor) {
       vec3 col;
       if (u_colorScheme == 0) {
-        // EXACT MOVIE ICON PALETTE:
-        if (isFront > 0.5) {
-          // FRONT BAND: Warm fibrous copper, smoked amber-russet, dark mahogany dust
-          vec3 cCore   = vec3(1.75, 1.45, 1.15); // Hot white-amber convergence
-          vec3 cInner  = vec3(1.35, 0.82, 0.42); // Warm copper
-          vec3 cMid    = vec3(1.05, 0.52, 0.22); // Smoked russet
-          vec3 cOuter  = vec3(0.55, 0.22, 0.08); // Dark mahogany dust
-          if (rNorm < 0.2) {
-            col = mix(cCore, cInner, rNorm / 0.2);
-          } else if (rNorm < 0.6) {
-            col = mix(cInner, cMid, (rNorm - 0.2) / 0.4);
-          } else {
-            col = mix(cMid, cOuter, (rNorm - 0.6) / 0.4);
-          }
+        // True Movie Interstellar Palette:
+        // Inner edge: Blinding incandescent white-gold
+        // Mid body: Molten amber-gold with rich orange undertones
+        // Outer rim: Smoky bronze and dark russet filaments
+        vec3 cCore   = vec3(1.65, 1.48, 1.15); // Blazing hot core
+        vec3 cInner  = vec3(1.42, 1.05, 0.45); // Warm gold
+        vec3 cMid    = vec3(1.15, 0.58, 0.12); // Amber flame
+        vec3 cOuter  = vec3(0.72, 0.22, 0.04); // Smoky bronze
+        vec3 cEdge   = vec3(0.35, 0.08, 0.01); // Dark dust
+
+        if (rNorm < 0.18) {
+          col = mix(cCore, cInner, rNorm / 0.18);
+        } else if (rNorm < 0.55) {
+          col = mix(cInner, cMid, (rNorm - 0.18) / 0.37);
+        } else if (rNorm < 0.85) {
+          col = mix(cMid, cOuter, (rNorm - 0.55) / 0.30);
         } else {
-          // REAR LENSED HALO: Brilliant silver-blue, ice-white, pale platinum concentric filaments
-          vec3 cCore   = vec3(1.85, 1.95, 2.15); // Blinding pure ice-white
-          vec3 cInner  = vec3(1.25, 1.42, 1.68); // Platinum silver-blue
-          vec3 cMid    = vec3(0.82, 1.05, 1.35); // Cool azure tint
-          vec3 cOuter  = vec3(0.45, 0.62, 0.88); // Deep interstellar blue
-          if (rNorm < 0.18) {
-            col = mix(cCore, cInner, rNorm / 0.18);
-          } else if (rNorm < 0.58) {
-            col = mix(cInner, cMid, (rNorm - 0.18) / 0.4);
-          } else {
-            col = mix(cMid, cOuter, (rNorm - 0.58) / 0.42);
-          }
+          col = mix(cOuter, cEdge, (rNorm - 0.85) / 0.15);
         }
       } else if (u_colorScheme == 1) {
-        // Classic Warm Gold
-        vec3 cCore   = vec3(1.65, 1.48, 1.15);
-        vec3 cInner  = vec3(1.38, 0.95, 0.38);
-        vec3 cMid    = vec3(1.12, 0.52, 0.12);
-        vec3 cOuter  = vec3(0.65, 0.18, 0.03);
+        // Stellar Cyan
+        vec3 cCore  = vec3(1.4, 1.55, 1.7);
+        vec3 cInner = vec3(0.2, 0.85, 1.3);
+        vec3 cMid   = vec3(0.05, 0.45, 0.95);
+        vec3 cOuter = vec3(0.01, 0.15, 0.55);
         col = mix(cCore, cInner, smoothstep(0.0, 0.25, rNorm));
         col = mix(col, cMid, smoothstep(0.25, 0.65, rNorm));
         col = mix(col, cOuter, smoothstep(0.65, 1.0, rNorm));
       } else if (u_colorScheme == 2) {
-        // Stellar Cyan
-        vec3 cCore  = vec3(1.4, 1.6, 1.8);
-        vec3 cInner = vec3(0.2, 0.9, 1.4);
-        vec3 cMid   = vec3(0.05, 0.5, 1.0);
-        vec3 cOuter = vec3(0.01, 0.18, 0.6);
-        col = mix(cCore, cInner, smoothstep(0.0, 0.25, rNorm));
-        col = mix(col, cMid, smoothstep(0.25, 0.65, rNorm));
-        col = mix(col, cOuter, smoothstep(0.65, 1.0, rNorm));
-      } else if (u_colorScheme == 3) {
         // Ultraviolet Blazar
         vec3 cCore  = vec3(1.5, 1.3, 1.7);
         vec3 cInner = vec3(0.9, 0.3, 1.3);
         vec3 cMid   = vec3(0.5, 0.08, 0.85);
         vec3 cOuter = vec3(0.2, 0.02, 0.45);
+        col = mix(cCore, cInner, smoothstep(0.0, 0.3, rNorm));
+        col = mix(col, cMid, smoothstep(0.3, 0.7, rNorm));
+        col = mix(col, cOuter, smoothstep(0.7, 1.0, rNorm));
+      } else if (u_colorScheme == 3) {
+        // Crimson / Relativistic Flare
+        vec3 cCore  = vec3(1.6, 0.8, 0.4);
+        vec3 cInner = vec3(1.3, 0.25, 0.08);
+        vec3 cMid   = vec3(0.85, 0.08, 0.02);
+        vec3 cOuter = vec3(0.4, 0.02, 0.005);
         col = mix(cCore, cInner, smoothstep(0.0, 0.3, rNorm));
         col = mix(col, cMid, smoothstep(0.3, 0.7, rNorm));
         col = mix(col, cOuter, smoothstep(0.7, 1.0, rNorm));
@@ -199,62 +187,57 @@ export const BlackHoleShader = {
       // Relativistic Temperature Shift
       float tempShift = dopplerFactor * redshiftFactor;
       if (tempShift > 1.15) {
-        col = mix(col, vec3(1.6, 1.65, 1.85), clamp((tempShift - 1.15) * 0.7, 0.0, 0.85));
+        // Blueshift: shifts hot side towards pure brilliant white
+        col = mix(col, vec3(1.5, 1.5, 1.6), clamp((tempShift - 1.15) * 0.75, 0.0, 0.85));
       } else if (tempShift < 0.85) {
-        col = mix(col, vec3(col.r * 1.15, col.g * 0.42, 0.02), clamp((0.85 - tempShift) * 1.3, 0.0, 0.9));
+        // Redshift: shifts receding side towards deep fiery amber/infrared
+        col = mix(col, vec3(col.r * 1.1, col.g * 0.45, 0.02), clamp((0.85 - tempShift) * 1.4, 0.0, 0.9));
       }
 
       return col;
     }
 
-    // --- Volumetric Accretion Point Evaluation ---
-    vec4 evaluateAccretionPoint(vec3 pos, float r, vec3 rayDir, float isFront) {
+    // --- Volumetric Accretion Density & Radiance ---
+    vec4 evaluateAccretionPoint(vec3 pos, float r, vec3 rayDir) {
       if (r < u_diskInner || r > u_diskOuter) return vec4(0.0);
 
       float rNorm = (r - u_diskInner) / (u_diskOuter - u_diskInner);
 
-      // 1. Vertical scale height profile
-      float diskHeight = u_diskThickness * (0.045 * r + 0.022);
+      // 1. Vertical Gaussian density profile
+      float diskHeight = u_diskThickness * (0.042 * r + 0.025);
       float vertProfile = exp(-pos.y * pos.y / (2.0 * diskHeight * diskHeight));
       if (vertProfile < 0.005) return vec4(0.0);
 
-      // 2. Radial density profile (sharp ISCO inner cliff, peak, and outer decline)
-      float rProfile = smoothstep(0.0, 0.08, rNorm) * pow(max(0.0, 1.0 - rNorm * 0.92), 1.6);
+      // 2. Radial density profile with sharp ISCO cutoff and power-law outer tail
+      float rProfile = smoothstep(0.0, 0.07, rNorm) * pow(max(0.0, 1.0 - rNorm * 0.9), 1.55);
       rProfile *= pow(u_diskInner / r, 1.35);
 
-      // 3. Spun-Silk Concentric Thread Striations (High frequency circular rings)
-      float logR = log(r / u_diskInner);
-      float striations = sin(72.0 * logR) * 0.32
-                       + sin(155.0 * logR) * 0.22
-                       + cos(310.0 * logR) * 0.14
-                       + sin(620.0 * logR) * 0.07;
+      // 3. Concentric density striations (Keplerian orbital rings)
+      float striations = sin(38.0 * log(r / u_diskInner)) * 0.14
+                       + sin(82.0 * log(r / u_diskInner)) * 0.08
+                       + cos(140.0 * log(r / u_diskInner)) * 0.05;
 
-      // 4. Azimuthal Keplerian shear & fibrous dust filaments
+      // 4. Azimuthal Keplerian shear & turbulent plasma filaments
       float phi = atan(pos.z, pos.x);
-      float omega = 3.6 / pow(r / u_diskInner, 1.5);
+      float omega = 3.8 / pow(r / u_diskInner, 1.5);
       float rotAngle = phi - omega * u_time * u_spinSpeed;
 
-      // Longitudinal fibrous streaks
-      float fiber1 = sin(4.0 * rotAngle - 5.5 * log(r) + u_time * 0.3);
-      float fiber2 = cos(8.0 * rotAngle - 8.5 * log(r) - u_time * 0.2);
-      float noiseVal = fbmPlasma(vec2(rotAngle * 3.2, log(r) * 6.5));
+      // Swirling spiral density arms
+      float spiral1 = sin(3.0 * rotAngle - 4.5 * log(r) + u_time * 0.35);
+      float spiral2 = cos(6.0 * rotAngle - 7.5 * log(r) - u_time * 0.2);
+      float noiseVal = fbmPlasma(vec2(rotAngle * 2.8, log(r) * 5.5));
 
-      // Dark dust lanes along the front stream
-      float dustLane = 1.0;
-      if (isFront > 0.5) {
-        float dustNoise = noise2D(vec2(rotAngle * 6.0, r * 2.5));
-        dustLane = smoothstep(0.25, 0.75, dustNoise) * 0.65 + 0.35;
-      }
-
-      float structure = (0.55 + striations + 0.22 * fiber1 + 0.14 * fiber2 + 0.42 * noiseVal) * dustLane;
+      float structure = 0.55 + striations + 0.22 * spiral1 + 0.15 * spiral2 + 0.45 * noiseVal;
       float density = rProfile * vertProfile * max(0.0, structure);
 
-      // 5. Relativistic Doppler Boosting
+      // 5. Relativistic Doppler Boosting (Calibrated to Christopher Nolan's movie balance)
       float dopplerFactor = 1.0;
       float betaOrb = clamp(sqrt(u_radius / (2.0 * r)), 0.0, 0.62);
 
       if (u_dopplerEnabled == 1) {
+        // Matter orbiting counter-clockwise in XZ plane
         vec3 vOrb = betaOrb * vec3(-sin(phi), 0.0, cos(phi));
+        // Angle with incoming photon (-rayDir)
         float betaParallel = dot(vOrb, -rayDir);
         float gamma = 1.0 / sqrt(max(0.001, 1.0 - betaOrb * betaOrb));
         dopplerFactor = 1.0 / (gamma * (1.0 - betaParallel));
@@ -266,48 +249,76 @@ export const BlackHoleShader = {
         redshiftFactor = sqrt(max(0.01, 1.0 - u_radius / r));
       }
 
-      float intensityBoost = (u_dopplerEnabled == 1) ? pow(dopplerFactor, 2.2) : 1.0;
+      // Nolan balanced exponent: ~2.0 creates authentic asymmetry without hiding the right side
+      float intensityBoost = (u_dopplerEnabled == 1) ? pow(dopplerFactor, 2.3) : 1.0;
 
-      // Dual-tone color calculation
-      vec3 color = getAccretionColor(rNorm, isFront, dopplerFactor, redshiftFactor);
+      // Color and radiance
+      vec3 color = getAccretionColor(rNorm, dopplerFactor, redshiftFactor);
       color *= intensityBoost * u_diskBrightness;
 
-      // Convergence Hotspot at the top junction (where front stream meets rear halo)
-      if (rNorm < 0.16 && pos.y > 0.0) {
-        color += vec3(1.6, 1.7, 1.9) * (0.16 - rNorm) * 6.0;
+      // Inner boundary incandescent glow boost
+      if (rNorm < 0.12) {
+        color *= 1.0 + (0.12 - rNorm) * 5.0;
       }
 
       float alpha = density * u_diskDensity;
       return vec4(color, alpha);
     }
 
-    // --- Deep Space Background ---
+    // --- Deep Space Background (Stars, Nebulae, Galactic Plane) ---
     vec3 sampleSpaceBackground(vec3 dir) {
-      vec3 col = vec3(0.001, 0.0015, 0.004); // Deep pristine space vacuum
+      vec3 col = vec3(0.001, 0.002, 0.006); // Pristine outer vacuum
 
-      // Subtle celestial nebula
+      // 1. Cosmic Nebulae (Interstellar molecular clouds)
       vec3 pNeb = dir * 3.5;
-      float n1 = noise3D(pNeb + vec3(u_time * 0.005, 0.0, 0.0));
-      float n2 = noise3D(pNeb * 2.2);
-      float nebVal = smoothstep(0.35, 0.9, n1 * 0.65 + n2 * 0.35);
+      float n1 = noise3D(pNeb + vec3(u_time * 0.006, 0.0, 0.0));
+      float n2 = noise3D(pNeb * 2.2 - vec3(0.0, u_time * 0.004, 0.0));
+      float nebVal = n1 * 0.65 + n2 * 0.35;
+      nebVal = smoothstep(0.32, 0.88, nebVal);
 
-      vec3 nebCyan = vec3(0.08, 0.38, 0.75);
-      vec3 nebMagenta = vec3(0.65, 0.12, 0.55);
-      vec3 nebColor = mix(nebCyan, nebMagenta, sin(dir.x * 2.0 + dir.y * 3.0) * 0.5 + 0.5);
-      col += nebColor * nebVal * 0.3 * u_nebulaIntensity;
+      vec3 nebCyan = vec3(0.08, 0.42, 0.85);
+      vec3 nebMagenta = vec3(0.72, 0.12, 0.62);
+      vec3 nebGold = vec3(0.95, 0.55, 0.12);
+      vec3 nebColor = mix(nebCyan, nebMagenta, sin(dir.x * 2.2 + dir.y * 3.1) * 0.5 + 0.5);
+      nebColor = mix(nebColor, nebGold, n2 * 0.5);
 
-      // Sharp pinpoint stars
-      vec3 pStar1 = dir * 210.0;
+      col += nebColor * nebVal * 0.4 * u_nebulaIntensity;
+
+      // 2. Galactic Core Band
+      float galPlane = exp(-abs(dir.y + 0.22 * sin(dir.x * 2.0)) * 8.0);
+      float galDust = noise3D(dir * 8.5);
+      col += vec3(0.42, 0.38, 0.52) * galPlane * (0.35 + 0.65 * galDust) * 0.5 * u_nebulaIntensity;
+
+      // 3. Realistic Cold Deep Space Stars
+      vec3 pStar1 = dir * 190.0;
       vec3 grid1 = floor(pStar1);
       float rnd1 = hash13(grid1);
-      if (rnd1 > 0.955) {
+      if (rnd1 > 0.945) {
         vec3 starOffset = hash33(grid1) - 0.5;
         float d = length(fract(pStar1) - 0.5 - starOffset * 0.6);
-        float star = smoothstep(0.18, 0.0, d);
+        float star = smoothstep(0.2, 0.0, d);
         
-        vec3 starCol = (rnd1 > 0.985) ? vec3(0.8, 0.95, 1.4) : vec3(1.15, 1.1, 0.9);
+        vec3 starCol = vec3(1.0);
+        float sType = hash13(grid1 + 10.0);
+        if (sType < 0.28) starCol = vec3(0.72, 0.88, 1.45); // Blue Hypergiant
+        else if (sType < 0.65) starCol = vec3(1.2, 1.12, 0.9); // Sun-like G
+        else starCol = vec3(1.3, 0.58, 0.3); // Red Dwarf
+
         float twinkle = sin(u_time * 2.5 + rnd1 * 50.0) * 0.25 + 0.75;
-        col += starCol * star * rnd1 * twinkle * 2.2 * u_starIntensity;
+        col += starCol * star * rnd1 * twinkle * 2.5 * u_starIntensity;
+      }
+
+      // Prominent bright stars with subtle diffraction halos
+      vec3 pStar2 = dir * 80.0;
+      vec3 grid2 = floor(pStar2);
+      float rnd2 = hash13(grid2);
+      if (rnd2 > 0.988) {
+        vec3 starOffset = hash33(grid2) - 0.5;
+        float d = length(fract(pStar2) - 0.5 - starOffset * 0.5);
+        float starCore = smoothstep(0.16, 0.0, d);
+        float starHalo = smoothstep(0.42, 0.0, d) * 0.22;
+        vec3 starCol = (rnd2 > 0.994) ? vec3(0.85, 0.95, 1.5) : vec3(1.3, 1.05, 0.75);
+        col += starCol * (starCore * 3.8 + starHalo) * u_starIntensity;
       }
 
       return col;
@@ -328,27 +339,23 @@ export const BlackHoleShader = {
       float Rs = u_radius;
       float escapeRadius = u_diskOuter * 2.8;
 
-      // Track closest approach to black hole for needle-sharp photon ring
-      float minDistance = 1e6;
-
-      // Kerr frame-dragging parameter
+      // Kerr spin parameter a/M = 0.998 (near-extremal Kerr metric)
       float spin = 0.92;
       vec3 spinAxis = vec3(0.0, 1.0, 0.0);
 
-      // Adaptive Kerr-Schwarzschild null geodesic raymarcher
-      for (int i = 0; i < 190; i++) {
+      // Adaptive Schwarzschild/Kerr raymarching
+      for (int i = 0; i < 180; i++) {
         if (i >= u_maxSteps) break;
 
         float r = length(rayPos);
-        minDistance = min(minDistance, r);
 
-        // 1. Event Horizon Absorption
-        if (r <= Rs * 1.008) {
-          // Ray trapped forever in the singularity
+        // 1. Event Horizon absorption
+        if (r <= Rs * 1.01) {
+          // Ray plunges into the singularity: absolute pitch darkness
           break;
         }
 
-        // 2. Escape Check
+        // 2. Escape check (reached outer space and moving outwards)
         if (r > escapeRadius && dot(rayPos, rayDir) > 0.0) {
           vec3 sky = sampleSpaceBackground(rayDir);
           accumColor += (1.0 - accumAlpha) * sky;
@@ -361,22 +368,18 @@ export const BlackHoleShader = {
         float rDotV = dot(rHat, rayDir);
         float L2 = max(0.0, 1.0 - rDotV * rDotV);
 
-        // Schwarzschild deflection
+        // Standard Schwarzschild null geodesic acceleration
         vec3 accel = -1.5 * Rs * (L2 / (r * r * r)) * rHat * u_lensStrength;
 
-        // Frame-dragging
+        // Kerr frame-dragging acceleration (Lense-Thirring dragging of light rays)
         vec3 drag = (2.0 * spin * Rs / (r * r * r)) * cross(spinAxis, rayDir) * u_lensStrength;
         accel += drag * 0.35;
 
-        // Adaptive step length: dense steps near horizon and photon sphere
-        float dt = clamp(r * 0.038, 0.016, 0.36) * u_qualityScale;
+        // Adaptive step length: small steps near horizon/photon sphere, larger steps far away
+        float dt = clamp(r * 0.042, 0.018, 0.38) * u_qualityScale;
 
         vec3 nextPos = rayPos + rayDir * dt;
         vec3 nextDir = normalize(rayDir + accel * dt);
-
-        // Distinguish front stream vs rear lensed halo:
-        // Front stream has z > 0 relative to black hole (in front of singularity)
-        float isFront = (rayPos.z > 0.0) ? 1.0 : 0.0;
 
         // 4. Exact Equatorial Plane Crossing (y = 0)
         if (rayPos.y * nextPos.y <= 0.0 && abs(rayPos.y - nextPos.y) > 1e-5) {
@@ -385,9 +388,8 @@ export const BlackHoleShader = {
           float rHit = length(pHit.xz);
 
           if (rHit >= u_diskInner && rHit <= u_diskOuter) {
-            float hitIsFront = (pHit.z > 0.0) ? 1.0 : 0.0;
-            vec4 surfSample = evaluateAccretionPoint(pHit, rHit, rayDir, hitIsFront);
-            float stepAlpha = clamp(surfSample.a * 1.5, 0.0, 0.985);
+            vec4 surfSample = evaluateAccretionPoint(pHit, rHit, rayDir);
+            float stepAlpha = clamp(surfSample.a * 1.45, 0.0, 0.98);
             accumColor += (1.0 - accumAlpha) * surfSample.rgb * stepAlpha;
             accumAlpha += (1.0 - accumAlpha) * stepAlpha;
 
@@ -395,11 +397,11 @@ export const BlackHoleShader = {
           }
         }
 
-        // 5. Continuous Volumetric Integration through vertical scale height
-        float diskHeight = u_diskThickness * (0.045 * r + 0.022);
+        // 5. Continuous Volumetric Integration through the disk's scale height
+        float diskHeight = u_diskThickness * (0.042 * r + 0.025);
         if (r >= u_diskInner && r <= u_diskOuter && abs(rayPos.y) < diskHeight * 3.2) {
-          vec4 volSample = evaluateAccretionPoint(rayPos, r, rayDir, isFront);
-          float dTau = volSample.a * 0.58 * dt;
+          vec4 volSample = evaluateAccretionPoint(rayPos, r, rayDir);
+          float dTau = volSample.a * 0.55 * dt;
           float volAlpha = 1.0 - exp(-dTau);
           accumColor += (1.0 - accumAlpha) * volSample.rgb * volAlpha;
           accumAlpha += (1.0 - accumAlpha) * volAlpha;
@@ -412,27 +414,21 @@ export const BlackHoleShader = {
         rayDir = nextDir;
       }
 
-      // 6. Needle-Sharp Silver-White Photon Ring around the Shadow Edge
-      // Critical impact parameter b_crit approx 2.598 * Rs (shadow boundary)
-      float photonRingRadius = 2.598 * Rs;
-      float photonDist = abs(minDistance - photonRingRadius);
-      float photonSharpness = exp(-photonDist * photonDist / 0.0045);
-      vec3 photonRingCol = vec3(1.7, 1.85, 2.1) * photonSharpness * 2.6;
-      accumColor += (1.0 - accumAlpha) * photonRingCol;
-
       // Blend remaining background
       if (accumAlpha < 1.0) {
         vec3 sky = sampleSpaceBackground(rayDir);
         accumColor += (1.0 - accumAlpha) * sky;
       }
 
-      // 7. Panavision 70mm Anamorphic Lens Flare
+      // 6. Anamorphic Lens Flare (Christopher Nolan Panavision 70mm aesthetic)
+      // Horizontal optical glare across intense brightness samples
       float flareUv = abs(vUv.y - 0.5);
-      float horizStreak = exp(-flareUv * 75.0) * smoothstep(1.3, 3.8, length(accumColor));
-      accumColor += vec3(1.15, 0.95, 0.65) * horizStreak * 0.25;
+      float horizStreak = exp(-flareUv * 65.0) * smoothstep(1.2, 3.5, length(accumColor));
+      accumColor += vec3(1.2, 0.9, 0.5) * horizStreak * 0.22;
 
-      // 8. Filmic Tone Mapping (ACES HDR curve)
-      vec3 x = accumColor * 0.92;
+      // 7. Filmic Tone Mapping & High Dynamic Range
+      // ACES style filmic curve
+      vec3 x = accumColor * 0.95;
       vec3 a = vec3(2.51);
       vec3 b = vec3(0.03);
       vec3 c = vec3(2.43);
@@ -443,9 +439,9 @@ export const BlackHoleShader = {
       // Gamma correction
       mapped = pow(mapped, vec3(1.0 / 1.12));
 
-      // Subtle vignette
+      // Delicate filmic vignette
       vec2 vigUv = (vUv - 0.5) * 2.0;
-      float vignette = 1.0 - dot(vigUv, vigUv) * 0.15;
+      float vignette = 1.0 - dot(vigUv, vigUv) * 0.16;
       mapped *= clamp(vignette, 0.0, 1.0);
 
       gl_FragColor = vec4(mapped, 1.0);

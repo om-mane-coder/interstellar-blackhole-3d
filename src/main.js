@@ -17,13 +17,12 @@ class InterstellarApp {
     this.container = document.getElementById('canvas-container');
     this.clock = new THREE.Clock();
 
-    // Default to the exact movie portrait perspective matching the reference image
-    this.cameraMode = 'movie_icon';
-    this.camTargetPos = new THREE.Vector3(0.0, 0.8, 16.5);
-    this.camTargetLookAt = new THREE.Vector3(0.0, 0.35, 0.0);
-    this.targetUp = new THREE.Vector3(0.96, 0.28, 0.0).normalize();
+    this.isMobile = this.detectMobile();
+    this.cameraMode = 'cinematic'; // 'cinematic', 'endurance', 'miller', 'infall', 'polar', 'free'
+    this.camTargetPos = new THREE.Vector3(0, 1.15, 17.5);
+    this.camTargetLookAt = new THREE.Vector3(0, 0, 0);
 
-    this.resolutionScale = 1.0;
+    this.resolutionScale = this.isMobile ? 0.9 : 1.0;
 
     this.initRenderer();
     this.initScenes();
@@ -35,22 +34,48 @@ class InterstellarApp {
 
     this.onWindowResize = this.onWindowResize.bind(this);
     window.addEventListener('resize', this.onWindowResize);
+    window.addEventListener('orientationchange', () => {
+      setTimeout(this.onWindowResize, 150);
+    });
 
     this.animate = this.animate.bind(this);
     requestAnimationFrame(this.animate);
   }
 
+  detectMobile() {
+    return /Mobi|Android|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent) || window.innerWidth < 768;
+  }
+
   initRenderer() {
     this.renderer = new THREE.WebGLRenderer({
-      antialias: true,
+      antialias: !this.isMobile,
       powerPreference: 'high-performance',
       stencil: false,
     });
     this.renderer.setSize(window.innerWidth, window.innerHeight);
-    this.renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2.0));
+
+    // Clamp DPR for mobile GPUs to ensure high framerate and battery efficiency
+    const maxDpr = this.isMobile ? 1.2 : 1.75;
+    this.renderer.setPixelRatio(Math.min(window.devicePixelRatio, maxDpr));
+
     this.renderer.toneMapping = THREE.ACESFilmicToneMapping;
-    this.renderer.toneMappingExposure = 1.15;
+    this.renderer.toneMappingExposure = 1.1;
     this.renderer.autoClear = false;
+
+    // Prevent default gesture bouncing on mobile canvas
+    this.renderer.domElement.style.touchAction = 'none';
+
+    // Handle WebGL context recovery
+    this.renderer.domElement.addEventListener('webglcontextlost', (e) => {
+      e.preventDefault();
+      console.warn('WebGL context lost, waiting for restore...');
+    }, false);
+
+    this.renderer.domElement.addEventListener('webglcontextrestored', () => {
+      console.log('WebGL context restored');
+      this.initRaymarchingQuad();
+      this.onWindowResize();
+    }, false);
 
     this.container.appendChild(this.renderer.domElement);
   }
@@ -86,17 +111,23 @@ class InterstellarApp {
       0.1,
       1000
     );
+    this.updateCameraFov();
     this.camera.position.copy(this.camTargetPos);
-    this.camera.up.copy(this.targetUp);
 
     this.controls = new OrbitControls(this.camera, this.renderer.domElement);
     this.controls.enableDamping = true;
     this.controls.dampingFactor = 0.06;
-    this.controls.minDistance = 2.8;
+    this.controls.minDistance = 2.6;
     this.controls.maxDistance = 65.0;
     this.controls.target.copy(this.camTargetLookAt);
     this.controls.maxPolarAngle = Math.PI - 0.05;
     this.controls.minPolarAngle = 0.05;
+
+    // Mobile touch gestures: 1-finger rotate, 2-finger zoom and pan
+    this.controls.touches = {
+      ONE: THREE.TOUCH.ROTATE,
+      TWO: THREE.TOUCH.DOLLY_PAN
+    };
 
     // Detect user manual interaction to switch to 'free' mode
     this.controls.addEventListener('start', () => {
@@ -111,12 +142,29 @@ class InterstellarApp {
     });
   }
 
+  updateCameraFov() {
+    // In portrait orientation on mobile (height > width), widen vertical FOV
+    // so the horizontal accretion disk and black hole are fully framed and not cut off!
+    if (this.camera.aspect < 1.0) {
+      this.camera.fov = Math.min(82, (48 / this.camera.aspect) * 0.72);
+    } else {
+      this.camera.fov = 48;
+    }
+    this.camera.updateProjectionMatrix();
+  }
+
   initRaymarchingQuad() {
     const uniforms = THREE.UniformsUtils.clone(BlackHoleShader.uniforms);
     uniforms.u_invProj.value = new THREE.Matrix4();
     uniforms.u_invView.value = new THREE.Matrix4();
     uniforms.u_cameraPos.value = new THREE.Vector3();
     uniforms.u_resolution.value = new THREE.Vector2(window.innerWidth, window.innerHeight);
+
+    // Performance adaptation for mobile devices
+    if (this.isMobile) {
+      uniforms.u_maxSteps.value = 85;
+      uniforms.u_qualityScale.value = 1.35;
+    }
 
     this.shaderMaterial = new THREE.ShaderMaterial({
       vertexShader: BlackHoleShader.vertexShader,
@@ -173,11 +221,12 @@ class InterstellarApp {
     this.composer.addPass(mainPass);
 
     // Unreal Bloom Pass for incandescent accretion disk luminescence
+    const bloomStrength = this.isMobile ? 0.8 : 0.95;
     this.bloomPass = new UnrealBloomPass(
       new THREE.Vector2(window.innerWidth, window.innerHeight),
-      0.95,  // strength
-      0.45,  // radius
-      0.65   // threshold
+      bloomStrength,
+      0.45,
+      0.65
     );
     this.composer.addPass(this.bloomPass);
   }
@@ -189,34 +238,23 @@ class InterstellarApp {
 
   setCameraMode(mode) {
     this.cameraMode = mode;
-    if (mode === 'movie_icon') {
-      // The exact movie portrait angle matching the reference image
-      this.camTargetPos.set(0.0, 0.8, 16.5);
-      this.camTargetLookAt.set(0.0, 0.35, 0.0);
-      this.targetUp.set(0.96, 0.28, 0.0).normalize();
-    } else if (mode === 'cinematic') {
-      // Classic horizontal view
-      this.camTargetPos.set(0.0, 1.15, 17.5);
-      this.camTargetLookAt.set(0.0, 0.0, 0.0);
-      this.targetUp.set(0.0, 1.0, 0.0);
+    if (mode === 'cinematic') {
+      this.camTargetPos.set(0, 1.15, 17.5);
+      this.camTargetLookAt.set(0, 0, 0);
     } else if (mode === 'endurance') {
       const shipPos = this.endurance.getWorldPosition();
       this.camTargetPos.copy(shipPos).add(new THREE.Vector3(2.6, 1.1, 3.8));
       this.camTargetLookAt.copy(shipPos);
-      this.targetUp.set(0.0, 1.0, 0.0);
     } else if (mode === 'miller') {
       const pPos = this.millersPlanet.getWorldPosition();
       this.camTargetPos.copy(pPos).add(new THREE.Vector3(2.2, 0.9, 3.2));
       this.camTargetLookAt.copy(pPos);
-      this.targetUp.set(0.0, 1.0, 0.0);
     } else if (mode === 'infall') {
-      this.camTargetPos.set(0.0, 0.32, 3.2);
-      this.camTargetLookAt.set(0.0, 0.0, 0.0);
-      this.targetUp.set(0.0, 1.0, 0.0);
+      this.camTargetPos.set(0, 0.32, 3.2);
+      this.camTargetLookAt.set(0, 0, 0);
     } else if (mode === 'polar') {
-      this.camTargetPos.set(0.0, 22.0, 0.05);
-      this.camTargetLookAt.set(0.0, 0.0, 0.0);
-      this.targetUp.set(0.0, 1.0, 0.0);
+      this.camTargetPos.set(0, 22.0, 0.05);
+      this.camTargetLookAt.set(0, 0, 0);
     }
   }
 
@@ -224,17 +262,16 @@ class InterstellarApp {
     if (this.shaderMaterial) {
       this.shaderMaterial.uniforms.u_colorScheme.value = scheme;
 
-      // Update accretion light color to match disk
       if (scheme === 0) {
-        this.accretionLight.color.setHex(0xff9922); // Copper/Gold
+        this.accretionLight.color.setHex(0xff9922);
       } else if (scheme === 1) {
-        this.accretionLight.color.setHex(0xffaa33); // Classic Gold
+        this.accretionLight.color.setHex(0x00d5ff);
       } else if (scheme === 2) {
-        this.accretionLight.color.setHex(0x00d5ff); // Cyan
+        this.accretionLight.color.setHex(0xd044ff);
       } else if (scheme === 3) {
-        this.accretionLight.color.setHex(0xd044ff); // Ultraviolet
+        this.accretionLight.color.setHex(0xff2233);
       } else {
-        this.accretionLight.color.setHex(0xffffff); // White
+        this.accretionLight.color.setHex(0xffffff);
       }
     }
   }
@@ -248,10 +285,13 @@ class InterstellarApp {
     const w = window.innerWidth;
     const h = window.innerHeight;
 
+    this.isMobile = this.detectMobile();
     this.camera.aspect = w / h;
-    this.camera.updateProjectionMatrix();
+    this.updateCameraFov();
 
-    const dpr = Math.min(window.devicePixelRatio, 2.0) * this.resolutionScale;
+    const maxDpr = this.isMobile ? 1.2 : 1.75;
+    const dpr = Math.min(window.devicePixelRatio, maxDpr) * this.resolutionScale;
+
     this.renderer.setSize(w, h);
     this.renderer.setPixelRatio(dpr);
 
@@ -275,17 +315,14 @@ class InterstellarApp {
       const desiredPos = shipPos.clone().add(new THREE.Vector3(2.8, 1.2, 3.5));
       this.camera.position.lerp(desiredPos, delta * 3.0);
       this.controls.target.lerp(shipPos, delta * 4.0);
-      this.camera.up.lerp(this.targetUp, delta * 2.5);
     } else if (this.cameraMode === 'miller') {
       const pPos = this.millersPlanet.getWorldPosition();
       const desiredPos = pPos.clone().add(new THREE.Vector3(2.4, 0.8, 3.2));
       this.camera.position.lerp(desiredPos, delta * 3.0);
       this.controls.target.lerp(pPos, delta * 4.0);
-      this.camera.up.lerp(this.targetUp, delta * 2.5);
     } else if (this.cameraMode !== 'free') {
-      this.camera.position.lerp(this.camTargetPos, delta * 2.5);
-      this.controls.target.lerp(this.camTargetLookAt, delta * 2.8);
-      this.camera.up.lerp(this.targetUp, delta * 2.5);
+      this.camera.position.lerp(this.camTargetPos, delta * 2.2);
+      this.controls.target.lerp(this.camTargetLookAt, delta * 2.5);
     }
 
     this.controls.update();

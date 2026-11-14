@@ -1,5 +1,5 @@
 /**
- * HUD & Interactive UI Controller
+ * HUD & Interactive UI Controller (Responsive & Mobile-Optimized)
  * Binds UI inputs to black hole shader uniforms, 3D objects, original soundtrack player, and camera modes.
  */
 
@@ -9,11 +9,12 @@ export class HUD {
     this.dom = {};
     this.initElements();
     this.bindEvents();
+    this.initTouchGestures();
   }
 
   initElements() {
     this.dom = {
-      // Audio
+      // Audio Desktop
       audioBtn: document.getElementById('btn-audio'),
       audioBars: document.querySelectorAll('.audio-bar'),
       trackTitle: document.getElementById('audio-track-title'),
@@ -23,6 +24,12 @@ export class HUD {
       sliderVolume: document.getElementById('slider-volume'),
       valVolume: document.getElementById('val-volume'),
 
+      // Audio Mobile
+      mobileAudioPill: document.getElementById('mobile-audio-pill'),
+      mobTrackTitle: document.getElementById('mob-track-title'),
+      btnMobPrev: document.getElementById('btn-mob-prev'),
+      btnMobNext: document.getElementById('btn-mob-next'),
+
       // Cinemascope
       cinemascopeBtn: document.getElementById('btn-cinemascope'),
 
@@ -31,10 +38,11 @@ export class HUD {
       scienceModal: document.getElementById('science-modal'),
       modalCloseBtn: document.getElementById('btn-modal-close'),
 
-      // Controls Drawer
+      // Controls Drawer (Bottom Sheet on mobile)
       settingsBtn: document.getElementById('btn-settings'),
       controlsPanel: document.getElementById('controls-panel'),
       panelCloseBtn: document.getElementById('btn-panel-close'),
+      drawerDragHandle: document.querySelector('.drawer-drag-handle'),
 
       // Telemetry
       distVal: document.getElementById('telemetry-distance'),
@@ -89,12 +97,14 @@ export class HUD {
 
   bindEvents() {
     // 1. Audio Play / Pause
-    this.dom.audioBtn.addEventListener('click', () => {
+    const handleAudioToggle = () => {
       const playing = this.app.audio.toggle();
       this.updateAudioButtonState(playing);
-    });
+    };
 
-    // Track Navigation
+    this.dom.audioBtn.addEventListener('click', handleAudioToggle);
+
+    // Track Navigation (Desktop)
     if (this.dom.prevTrackBtn) {
       this.dom.prevTrackBtn.addEventListener('click', (e) => {
         e.stopPropagation();
@@ -113,6 +123,38 @@ export class HUD {
         this.updateTrackDisplay(trk);
         if (this.dom.trackSelect) {
           this.dom.trackSelect.value = this.app.audio.currentTrackIndex;
+        }
+      });
+    }
+
+    // Track Navigation (Mobile Pill)
+    if (this.dom.btnMobPrev) {
+      this.dom.btnMobPrev.addEventListener('click', (e) => {
+        e.stopPropagation();
+        const trk = this.app.audio.prevTrack();
+        this.updateTrackDisplay(trk);
+        if (this.dom.trackSelect) {
+          this.dom.trackSelect.value = this.app.audio.currentTrackIndex;
+        }
+      });
+    }
+
+    if (this.dom.btnMobNext) {
+      this.dom.btnMobNext.addEventListener('click', (e) => {
+        e.stopPropagation();
+        const trk = this.app.audio.nextTrack();
+        this.updateTrackDisplay(trk);
+        if (this.dom.trackSelect) {
+          this.dom.trackSelect.value = this.app.audio.currentTrackIndex;
+        }
+      });
+    }
+
+    if (this.dom.mobileAudioPill) {
+      this.dom.mobileAudioPill.addEventListener('click', (e) => {
+        // If clicked on title text, toggle play/pause
+        if (e.target.closest('.mob-audio-content')) {
+          handleAudioToggle();
         }
       });
     }
@@ -136,13 +178,15 @@ export class HUD {
     }
 
     // 2. Cinemascope Mode
-    this.dom.cinemascopeBtn.addEventListener('click', () => {
-      document.body.classList.toggle('cinemascope-active');
-      const active = document.body.classList.contains('cinemascope-active');
-      this.dom.cinemascopeBtn.classList.toggle('active', active);
-    });
+    if (this.dom.cinemascopeBtn) {
+      this.dom.cinemascopeBtn.addEventListener('click', () => {
+        document.body.classList.toggle('cinemascope-active');
+        const active = document.body.classList.contains('cinemascope-active');
+        this.dom.cinemascopeBtn.classList.toggle('active', active);
+      });
+    }
 
-    // 3. Settings Drawer
+    // 3. Settings Drawer / Mobile Bottom Sheet
     this.dom.settingsBtn.addEventListener('click', () => {
       this.dom.controlsPanel.classList.toggle('collapsed');
       this.dom.settingsBtn.classList.toggle('active', !this.dom.controlsPanel.classList.contains('collapsed'));
@@ -270,13 +314,13 @@ export class HUD {
       this.dom.selectQuality.addEventListener('change', (e) => {
         const val = e.target.value;
         if (val === 'perf') {
-          this.app.shaderMaterial.uniforms.u_maxSteps.value = 90;
-          this.app.shaderMaterial.uniforms.u_qualityScale.value = 1.35;
+          this.app.shaderMaterial.uniforms.u_maxSteps.value = 80;
+          this.app.shaderMaterial.uniforms.u_qualityScale.value = 1.4;
           this.app.setResolutionScale(0.75);
         } else if (val === 'balanced') {
-          this.app.shaderMaterial.uniforms.u_maxSteps.value = 140;
-          this.app.shaderMaterial.uniforms.u_qualityScale.value = 1.0;
-          this.app.setResolutionScale(1.0);
+          this.app.shaderMaterial.uniforms.u_maxSteps.value = this.app.isMobile ? 85 : 140;
+          this.app.shaderMaterial.uniforms.u_qualityScale.value = this.app.isMobile ? 1.35 : 1.0;
+          this.app.setResolutionScale(this.app.isMobile ? 0.9 : 1.0);
         } else if (val === 'ultra') {
           this.app.shaderMaterial.uniforms.u_maxSteps.value = 180;
           this.app.shaderMaterial.uniforms.u_qualityScale.value = 0.72;
@@ -290,21 +334,54 @@ export class HUD {
     }
   }
 
+  initTouchGestures() {
+    // Swipe down on mobile bottom sheet to dismiss
+    let touchStartY = 0;
+    if (this.dom.controlsPanel) {
+      this.dom.controlsPanel.addEventListener('touchstart', (e) => {
+        touchStartY = e.touches[0].clientY;
+      }, { passive: true });
+
+      this.dom.controlsPanel.addEventListener('touchmove', (e) => {
+        const touchCurrentY = e.touches[0].clientY;
+        const diff = touchCurrentY - touchStartY;
+        // If swiping down from near top of drawer
+        if (diff > 70 && this.dom.controlsPanel.scrollTop <= 10) {
+          this.dom.controlsPanel.classList.add('collapsed');
+          this.dom.settingsBtn.classList.remove('active');
+        }
+      }, { passive: true });
+    }
+
+    if (this.dom.drawerDragHandle) {
+      this.dom.drawerDragHandle.addEventListener('click', () => {
+        this.dom.controlsPanel.classList.add('collapsed');
+        this.dom.settingsBtn.classList.remove('active');
+      });
+    }
+  }
+
   updateAudioButtonState(playing) {
     if (playing) {
       this.dom.audioBtn.classList.add('active');
       const label = this.dom.audioBtn.querySelector('.btn-label');
-      if (label) label.textContent = 'OST: PLAYING';
+      if (label) label.textContent = 'OST';
+      if (this.dom.mobileAudioPill) this.dom.mobileAudioPill.classList.add('playing');
     } else {
       this.dom.audioBtn.classList.remove('active');
       const label = this.dom.audioBtn.querySelector('.btn-label');
-      if (label) label.textContent = 'OST: PAUSED';
+      if (label) label.textContent = 'OST';
+      if (this.dom.mobileAudioPill) this.dom.mobileAudioPill.classList.remove('playing');
     }
   }
 
   updateTrackDisplay(track) {
-    if (this.dom.trackTitle && track) {
+    if (!track) return;
+    if (this.dom.trackTitle) {
       this.dom.trackTitle.textContent = `${track.artist} - ${track.title}`;
+    }
+    if (this.dom.mobTrackTitle) {
+      this.dom.mobTrackTitle.textContent = `${track.title}`;
     }
   }
 
@@ -339,30 +416,40 @@ export class HUD {
     const distInRs = (dist / Rs).toFixed(2);
     const au = (dist * 0.12).toFixed(2);
 
-    this.dom.distVal.textContent = `${distInRs} Rs (${au} AU)`;
+    if (this.dom.distVal) {
+      this.dom.distVal.textContent = `${distInRs} Rs (${au} AU)`;
+    }
 
     // Calculate General Relativistic Time Dilation
     if (dist > Rs * 1.02) {
       const dilationFactor = 1.0 / Math.sqrt(1.0 - Rs / dist);
-      if (dilationFactor > 20.0) {
-        this.dom.dilationVal.textContent = `CRITICAL (${dilationFactor.toFixed(1)}x)`;
-        this.dom.dilationVal.classList.add('danger');
-      } else {
-        this.dom.dilationVal.textContent = `${dilationFactor.toFixed(3)}x`;
-        this.dom.dilationVal.classList.remove('danger');
+      if (this.dom.dilationVal) {
+        if (dilationFactor > 20.0) {
+          this.dom.dilationVal.textContent = `CRITICAL (${dilationFactor.toFixed(1)}x)`;
+          this.dom.dilationVal.classList.add('danger');
+        } else {
+          this.dom.dilationVal.textContent = `${dilationFactor.toFixed(3)}x`;
+          this.dom.dilationVal.classList.remove('danger');
+        }
       }
 
-      if (Math.abs(dist - 16.5) < 3.0) {
-        this.dom.statusPill.innerHTML = `MILLER'S ORBIT: <span>1 HR = 7 YEARS</span>`;
-      } else if (dist < 3.2) {
-        this.dom.statusPill.innerHTML = `EXTREME GRAVITY: <span>PHOTON SPHERE DIVE</span>`;
-      } else {
-        this.dom.statusPill.innerHTML = `TIME DILATION: <span>${dilationFactor.toFixed(2)}x EARTH SPEED</span>`;
+      if (this.dom.statusPill) {
+        if (Math.abs(dist - 16.5) < 3.0) {
+          this.dom.statusPill.innerHTML = `MILLER'S ORBIT: <span>1 HR = 7 YEARS</span>`;
+        } else if (dist < 3.2) {
+          this.dom.statusPill.innerHTML = `EXTREME GRAVITY: <span>PHOTON SPHERE DIVE</span>`;
+        } else {
+          this.dom.statusPill.innerHTML = `TIME DILATION: <span>${dilationFactor.toFixed(2)}x EARTH</span>`;
+        }
       }
     } else {
-      this.dom.dilationVal.textContent = 'EVENT HORIZON (SINGULARITY)';
-      this.dom.dilationVal.classList.add('danger');
-      this.dom.statusPill.innerHTML = `WARNING: <span>PAST HORIZON BOUNDARY</span>`;
+      if (this.dom.dilationVal) {
+        this.dom.dilationVal.textContent = 'EVENT HORIZON';
+        this.dom.dilationVal.classList.add('danger');
+      }
+      if (this.dom.statusPill) {
+        this.dom.statusPill.innerHTML = `WARNING: <span>PAST HORIZON BOUNDARY</span>`;
+      }
     }
   }
 }
