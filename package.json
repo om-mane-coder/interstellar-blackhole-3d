@@ -1,0 +1,18 @@
+{
+  "name": "interstellar-blackhole-3d",
+  "version": "1.0.0",
+  "description": "Interactive 3D Interstellar Gargantua Black Hole and Outer Space Simulation in WebGL/Three.js",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview"
+  },
+  "dependencies": {
+    "three": "^0.187.0"
+  },
+  "devDependencies": {
+    "@types/three": "^0.187.0",
+    "vite": "^8.3.8"
+  }
+}

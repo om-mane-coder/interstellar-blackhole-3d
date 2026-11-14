@@ -1,0 +1,383 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>GARGANTUA // Interstellar Movie Accurate 3D Black Hole & Deep Space</title>
+  <link rel="stylesheet" href="./src/style.css" />
+  <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><circle cx='50' cy='50' r='45' fill='%23000'/><circle cx='50' cy='50' r='30' fill='none' stroke='%23f5a623' stroke-width='8'/><ellipse cx='50' cy='50' rx='48' ry='16' fill='none' stroke='%23f5a623' stroke-width='6'/></svg>" />
+</head>
+<body>
+  <!-- Three.js Canvas Container -->
+  <div id="canvas-container"></div>
+
+  <!-- 2.39:1 Cinemascope Letterbox Bars -->
+  <div class="cinemascope-bar top"></div>
+  <div class="cinemascope-bar bottom"></div>
+
+  <!-- Interactive HUD Overlay -->
+  <div id="hud-overlay">
+    <!-- Top Header Bar -->
+    <header class="hud-header">
+      <div class="hud-title-group">
+        <div class="hud-logo-icon"></div>
+        <div>
+          <div class="hud-title">GARGANTUA</div>
+          <div class="hud-subtitle">KERR METRIC SUPERMASSIVE BLACK HOLE // INTERSTELLAR</div>
+        </div>
+      </div>
+
+      <!-- Real-Time Telemetry Readout -->
+      <div class="hud-telemetry">
+        <div class="telemetry-item">
+          <span class="telemetry-label">Mass</span>
+          <span class="telemetry-value" id="telemetry-mass">1.0 × 10⁸ M☉</span>
+        </div>
+        <div class="telemetry-item">
+          <span class="telemetry-label">Event Horizon (Rs)</span>
+          <span class="telemetry-value">2.95 × 10⁸ km</span>
+        </div>
+        <div class="telemetry-item">
+          <span class="telemetry-label">Observer Distance</span>
+          <span class="telemetry-value" id="telemetry-distance">17.5 Rs (2.1 AU)</span>
+        </div>
+        <div class="telemetry-item">
+          <span class="telemetry-label">Gravitational Dilation</span>
+          <span class="telemetry-value" id="telemetry-dilation">1.030x</span>
+        </div>
+      </div>
+
+      <!-- Original Soundtrack Player Bar in Header -->
+      <div class="audio-player-bar">
+        <button id="btn-track-prev" class="audio-nav-btn" title="Previous Track">⏮</button>
+        <div class="audio-track-info">
+          <span class="audio-badge">ORIGINAL OST</span>
+          <span id="audio-track-title" class="audio-title-marquee">Hans Zimmer - Main Theme (First Step)</span>
+        </div>
+        <button id="btn-track-next" class="audio-nav-btn" title="Next Track">⏭</button>
+      </div>
+
+      <!-- Action Buttons -->
+      <div class="hud-actions">
+        <!-- Audio Play/Pause Button with FFT Visualizer -->
+        <button id="btn-audio" class="hud-btn" title="Play Original Interstellar Soundtrack">
+          <div class="audio-viz">
+            <span class="audio-bar"></span>
+            <span class="audio-bar"></span>
+            <span class="audio-bar"></span>
+            <span class="audio-bar"></span>
+          </div>
+          <span class="btn-label">OST: OFF</span>
+        </button>
+
+        <!-- Cinemascope Toggle -->
+        <button id="btn-cinemascope" class="hud-btn" title="Toggle 2.39:1 Panavision Cinemascope Letterbox">
+          <span>CINEMA MODE</span>
+        </button>
+
+        <!-- Science & Physics Modal -->
+        <button id="btn-science" class="hud-btn" title="General Relativity & Kip Thorne Physics Briefing">
+          <span>PHYSICS INFO</span>
+        </button>
+
+        <!-- Settings / Controls Drawer Toggle -->
+        <button id="btn-settings" class="hud-btn" title="Configure Accretion Disk, Optics & Outer Space">
+          <span>CONTROLS</span>
+        </button>
+      </div>
+    </header>
+
+    <!-- Bottom Bar: Camera Presets & Time Dilation Pill -->
+    <footer class="hud-bottom">
+      <div class="camera-modes">
+        <button class="cam-btn active" data-cam="cinematic">CINEMATIC</button>
+        <button class="cam-btn" data-cam="endurance">ENDURANCE SHIP</button>
+        <button class="cam-btn" data-cam="miller">MILLER'S PLANET</button>
+        <button class="cam-btn" data-cam="infall">ACCRETION DIVE</button>
+        <button class="cam-btn" data-cam="polar">POLAR AXIS</button>
+        <button class="cam-btn" data-cam="free">FREE ORBIT</button>
+      </div>
+
+      <div class="time-dilation-pill">
+        <div class="dilation-pulse"></div>
+        <div class="dilation-text" id="time-dilation-text">
+          TIME DILATION: <span>1.03x EARTH SPEED</span>
+        </div>
+      </div>
+    </footer>
+  </div>
+
+  <!-- Collapsible Controls Drawer Panel -->
+  <aside id="controls-panel" class="collapsed">
+    <div class="panel-header">
+      <span class="panel-title">SIMULATION CONTROLS</span>
+      <button id="btn-panel-close" class="panel-close-btn">&times;</button>
+    </div>
+
+    <!-- Original Soundtrack Section -->
+    <div class="control-section">
+      <div class="section-label">Original Soundtrack (Hans Zimmer)</div>
+      
+      <div class="control-row">
+        <div class="control-row-header">
+          <span>Soundtrack Track</span>
+        </div>
+        <select id="select-soundtrack">
+          <option value="0" selected>1. Main Theme (Day One / First Step)</option>
+          <option value="1">2. Cornfield Chase</option>
+          <option value="2">3. No Time For Caution (Docking Scene)</option>
+        </select>
+      </div>
+
+      <div class="control-row">
+        <div class="control-row-header">
+          <span>Master Volume</span>
+          <span id="val-volume" class="control-value">75%</span>
+        </div>
+        <input type="range" id="slider-volume" min="0" max="1" step="0.05" value="0.75" />
+      </div>
+
+      <div class="toggle-row">
+        <span class="toggle-label">1.25s Miller's Dilation Tick</span>
+        <label class="switch">
+          <input type="checkbox" id="toggle-ticks" checked />
+          <span class="slider-switch"></span>
+        </label>
+      </div>
+    </div>
+
+    <!-- Accretion Disk Section -->
+    <div class="control-section">
+      <div class="section-label">Accretion Disk Palette</div>
+      <div class="palette-grid">
+        <button class="palette-btn active" data-scheme="0">
+          <span class="dot" style="background: #f5a623;"></span>
+          <span>Gargantua</span>
+        </button>
+        <button class="palette-btn" data-scheme="1">
+          <span class="dot" style="background: #00e5ff;"></span>
+          <span>Cyan</span>
+        </button>
+        <button class="palette-btn" data-scheme="2">
+          <span class="dot" style="background: #bf55ec;"></span>
+          <span>UV Blazar</span>
+        </button>
+        <button class="palette-btn" data-scheme="3">
+          <span class="dot" style="background: #e74c3c;"></span>
+          <span>Crimson</span>
+        </button>
+        <button class="palette-btn" data-scheme="4">
+          <span class="dot" style="background: #ffffff;"></span>
+          <span>Pure White</span>
+        </button>
+      </div>
+
+      <div class="control-row">
+        <div class="control-row-header">
+          <span>Disk Luminescence</span>
+          <span id="val-brightness" class="control-value">1.6x</span>
+        </div>
+        <input type="range" id="slider-brightness" min="0.2" max="3.5" step="0.1" value="1.6" />
+      </div>
+
+      <div class="control-row">
+        <div class="control-row-header">
+          <span>Keplerian Spin Rate</span>
+          <span id="val-speed" class="control-value">0.75x</span>
+        </div>
+        <input type="range" id="slider-speed" min="0.0" max="2.5" step="0.05" value="0.75" />
+      </div>
+
+      <div class="control-row">
+        <div class="control-row-header">
+          <span>Volumetric Density</span>
+          <span id="val-density" class="control-value">1.15</span>
+        </div>
+        <input type="range" id="slider-density" min="0.1" max="2.0" step="0.05" value="1.15" />
+      </div>
+
+      <div class="control-row">
+        <div class="control-row-header">
+          <span>Scale Height (H/R)</span>
+          <span id="val-thickness" class="control-value">0.038</span>
+        </div>
+        <input type="range" id="slider-thickness" min="0.01" max="0.12" step="0.005" value="0.038" />
+      </div>
+    </div>
+
+    <!-- General Relativity & Optics Section -->
+    <div class="control-section">
+      <div class="section-label">General Relativity Optics</div>
+      
+      <div class="control-row">
+        <div class="control-row-header">
+          <span>Lensing Strength (GR Deflection)</span>
+          <span id="val-lensing" class="control-value">1.00x</span>
+        </div>
+        <input type="range" id="slider-lensing" min="0.0" max="2.0" step="0.05" value="1.0" />
+      </div>
+
+      <div class="toggle-row">
+        <span class="toggle-label">Relativistic Doppler Beaming</span>
+        <label class="switch">
+          <input type="checkbox" id="toggle-doppler" checked />
+          <span class="slider-switch"></span>
+        </label>
+      </div>
+
+      <div class="toggle-row">
+        <span class="toggle-label">Gravitational Redshift</span>
+        <label class="switch">
+          <input type="checkbox" id="toggle-redshift" checked />
+          <span class="slider-switch"></span>
+        </label>
+      </div>
+    </div>
+
+    <!-- Outer Space Environment Section -->
+    <div class="control-section">
+      <div class="section-label">Outer Space Region</div>
+
+      <div class="toggle-row">
+        <span class="toggle-label">Endurance Spacecraft</span>
+        <label class="switch">
+          <input type="checkbox" id="toggle-ship" checked />
+          <span class="slider-switch"></span>
+        </label>
+      </div>
+
+      <div class="toggle-row">
+        <span class="toggle-label">Miller's Planet (Water World)</span>
+        <label class="switch">
+          <input type="checkbox" id="toggle-planet" checked />
+          <span class="slider-switch"></span>
+        </label>
+      </div>
+
+      <div class="toggle-row">
+        <span class="toggle-label">Asteroid & Debris Belt</span>
+        <label class="switch">
+          <input type="checkbox" id="toggle-asteroids" checked />
+          <span class="slider-switch"></span>
+        </label>
+      </div>
+
+      <div class="toggle-row">
+        <span class="toggle-label">Spacetime Geodesic Flow</span>
+        <label class="switch">
+          <input type="checkbox" id="toggle-streams" checked />
+          <span class="slider-switch"></span>
+        </label>
+      </div>
+
+      <div class="control-row">
+        <div class="control-row-header">
+          <span>Background Starfield</span>
+          <span id="val-stars" class="control-value">1.2x</span>
+        </div>
+        <input type="range" id="slider-stars" min="0.2" max="2.5" step="0.1" value="1.2" />
+      </div>
+
+      <div class="control-row">
+        <div class="control-row-header">
+          <span>Cosmic Nebula Glow</span>
+          <span id="val-nebula" class="control-value">1.0x</span>
+        </div>
+        <input type="range" id="slider-nebula" min="0.0" max="2.5" step="0.1" value="1.0" />
+      </div>
+    </div>
+
+    <!-- Post-Processing Section -->
+    <div class="control-section">
+      <div class="section-label">Cinematics & Precision</div>
+
+      <div class="control-row">
+        <div class="control-row-header">
+          <span>Accretion Bloom Glare</span>
+          <span id="val-bloom" class="control-value">1.0</span>
+        </div>
+        <input type="range" id="slider-bloom" min="0.0" max="2.5" step="0.1" value="1.0" />
+      </div>
+
+      <div class="control-row">
+        <div class="control-row-header">
+          <span>Raymarching Precision</span>
+        </div>
+        <select id="select-quality">
+          <option value="perf">Performance (Fast 60+ FPS)</option>
+          <option value="balanced" selected>Balanced (Movie Accurate)</option>
+          <option value="ultra">Ultra (High Resolution Geodesics)</option>
+          <option value="imax">IMAX 70mm (Maximum Precision)</option>
+        </select>
+      </div>
+    </div>
+  </aside>
+
+  <!-- Science & General Relativity Modal -->
+  <div id="science-modal">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h2>THE PHYSICS OF GARGANTUA</h2>
+        <button id="btn-modal-close" class="panel-close-btn">&times;</button>
+      </div>
+      <div class="modal-body">
+        <p>
+          In Christopher Nolan's 2014 masterpiece <em>Interstellar</em>, the black hole <strong>Gargantua</strong> was created in collaboration with Nobel laureate physicist <strong>Dr. Kip Thorne</strong> and the visual effects team at Double Negative (DNEG).
+        </p>
+
+        <h3>1. Why Does the Accretion Disk Look Like a "Hat"?</h3>
+        <p>
+          The accretion disk around Gargantua is actually a completely flat disc situated along the equatorial plane. However, the immense gravity of the black hole warps spacetime so severely that light rays emitted from the <em>back</em> of the disk are bent up and over the top of the event horizon, and down under the bottom!
+        </p>
+        <p>
+          As an observer, you see three distinct parts of the disk at once:
+        </p>
+        <ul>
+          <li><strong>The Front Belt:</strong> The front portion of the disk between the observer and the black hole.</li>
+          <li><strong>The Upper Halo Arch:</strong> The back of the disk lensed over the top of the event horizon.</li>
+          <li><strong>The Lower Under-Arch:</strong> The back of the disk lensed under the bottom of the event horizon.</li>
+        </ul>
+
+        <div class="modal-diagram">
+      [ Upper Arch: Back of Disk bent OVER the top ]
+                  ╭─────────────╮
+                  │  (Top Halo) │
+      ────────────┴─────────────┴──────────── [Equatorial Disk]
+                  │ (Black Hole)│
+                  │   Shadow    │
+      ────────────┬─────────────┬────────────
+                  │(Bottom Halo)│
+                  ╰─────────────╯
+      [ Lower Arch: Back of Disk bent UNDER bottom ]
+        </div>
+
+        <h3>2. Relativistic Doppler Beaming</h3>
+        <p>
+          Matter in the accretion disk orbits at up to <strong>65% the speed of light</strong> (<em>c</em>). Because of Einstein's Special Relativity, photons emitted by matter traveling towards the observer are compressed in wavelength (blueshifted) and intensely amplified in brightness:
+        </p>
+        <div class="physics-equation">
+          Doppler Factor: δ = 1 / [ γ · (1 - β · cos θ) ]<br/>
+          Observed Intensity: I_obs = I_0 · δ²·³
+        </div>
+        <p>
+          In <em>Interstellar</em>, Christopher Nolan requested that Doppler beaming be tuned so that the left side is noticeably hotter (intense fiery white-gold) and brighter, while the right side remains beautifully visible in warm golden-amber and smoked crimson.
+        </p>
+
+        <h3>3. Gravitational Time Dilation & Miller's Planet</h3>
+        <p>
+          General Relativity dictates that time flows slower near massive gravitational wells. On <strong>Miller's Planet</strong>, orbiting deep in Gargantua's gravity well, <strong>one hour on the surface equals seven Earth years</strong>:
+        </p>
+        <div class="physics-equation">
+          Δt_observer = Δt_surface / √( 1 - 2GM / rc² )<br/>
+          Time Dilation Ratio = 61,320x Earth Speed
+        </div>
+        <p>
+          In the film, the iconic acoustic ticking track in Hans Zimmer's score occurs every <strong>1.25 seconds</strong> — each tick marks one full day passing on Earth.
+        </p>
+      </div>
+    </div>
+  </div>
+
+  <script type="module" src="./src/main.js"></script>
+</body>
+</html>
