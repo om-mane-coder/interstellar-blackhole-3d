@@ -203,10 +203,12 @@ export const BlackHoleShader = {
 
       float rNorm = (r - u_diskInner) / (u_diskOuter - u_diskInner);
 
-      // 1. Vertical Gaussian density profile
-      float diskHeight = u_diskThickness * (0.042 * r + 0.025);
+      // 1. Vertical Gaussian density profile with distance-adaptive subpixel anti-aliasing
+      float camDist = length(u_cameraPos);
+      float pixelFootprint = max(0.016, camDist * 0.0028);
+      float diskHeight = max(u_diskThickness * (0.042 * r + 0.025), pixelFootprint);
       float vertProfile = exp(-pos.y * pos.y / (2.0 * diskHeight * diskHeight));
-      if (vertProfile < 0.005) return vec4(0.0);
+      if (vertProfile < 0.004) return vec4(0.0);
 
       // 2. Radial density profile with sharp ISCO cutoff and power-law outer tail
       float rProfile = smoothstep(0.0, 0.07, rNorm) * pow(max(0.0, 1.0 - rNorm * 0.9), 1.55);
@@ -256,9 +258,11 @@ export const BlackHoleShader = {
       vec3 color = getAccretionColor(rNorm, dopplerFactor, redshiftFactor);
       color *= intensityBoost * u_diskBrightness;
 
-      // Inner boundary incandescent glow boost
-      if (rNorm < 0.12) {
-        color *= 1.0 + (0.12 - rNorm) * 5.0;
+      // Inner boundary incandescent glow boost & razor-sharp photon ring
+      if (rNorm < 0.15) {
+        float innerPeak = exp(-rNorm * 22.0) * 3.5;
+        color += vec3(1.8, 1.6, 1.2) * innerPeak * u_diskBrightness;
+        color *= 1.0 + (0.15 - rNorm) * 4.5;
       }
 
       float alpha = density * u_diskDensity;
@@ -337,81 +341,123 @@ export const BlackHoleShader = {
       float accumAlpha = 0.0;
 
       float Rs = u_radius;
-      float escapeRadius = u_diskOuter * 2.8;
+      float R_bound = u_diskOuter * 1.65; // ~22.8 Rs: outer interaction boundary
+
+      float camDist = length(rayPos);
+
+      // --- Space-Leaping for Distant Camera Views ---
+      // In flat outer space (r > R_bound), gravity is negligible.
+      // Light rays travel in straight Euclidean lines until they enter R_bound.
+      if (camDist > R_bound) {
+        float b = dot(rayPos, rayDir);
+        float c = dot(rayPos, rayPos) - R_bound * R_bound;
+
+        if (b > 0.0) {
+          // Ray points away from the black hole system
+          accumColor = sampleSpaceBackground(rayDir);
+          accumAlpha = 1.0;
+        } else {
+          float disc = b * b - c;
+          if (disc < 0.0) {
+            // Ray misses the black hole and accretion disk interaction sphere entirely
+            accumColor = sampleSpaceBackground(rayDir);
+            accumAlpha = 1.0;
+          } else {
+            // Ray intersects interaction sphere: leap directly to entry point!
+            float tNear = -b - sqrt(disc);
+            if (tNear > 0.0) {
+              rayPos += rayDir * max(0.0, tNear - 0.04);
+            }
+          }
+        }
+      }
 
       // Kerr spin parameter a/M = 0.998 (near-extremal Kerr metric)
       float spin = 0.92;
       vec3 spinAxis = vec3(0.0, 1.0, 0.0);
+      float escapeRadius = R_bound * 1.08;
 
-      // Adaptive Schwarzschild/Kerr raymarching
-      for (int i = 0; i < 180; i++) {
-        if (i >= u_maxSteps) break;
+      if (accumAlpha < 1.0) {
+        // Adaptive Schwarzschild/Kerr raymarching
+        for (int i = 0; i < 180; i++) {
+          if (i >= u_maxSteps) break;
 
-        float r = length(rayPos);
+          float r = length(rayPos);
 
-        // 1. Event Horizon absorption
-        if (r <= Rs * 1.01) {
-          // Ray plunges into the singularity: absolute pitch darkness
-          break;
-        }
+          // 1. Event Horizon absorption (singularity absorbs all incident light)
+          if (r <= Rs * 1.01) {
+            accumAlpha = 1.0;
+            break;
+          }
 
-        // 2. Escape check (reached outer space and moving outwards)
-        if (r > escapeRadius && dot(rayPos, rayDir) > 0.0) {
-          vec3 sky = sampleSpaceBackground(rayDir);
-          accumColor += (1.0 - accumAlpha) * sky;
-          accumAlpha = 1.0;
-          break;
-        }
+          // 2. Escape check (reached outer space and moving outwards)
+          if (r > escapeRadius && dot(rayPos, rayDir) > 0.0) {
+            vec3 sky = sampleSpaceBackground(rayDir);
+            accumColor += (1.0 - accumAlpha) * sky;
+            accumAlpha = 1.0;
+            break;
+          }
 
-        // 3. Relativistic Geodesic Deflection with Kerr Frame-Dragging
-        vec3 rHat = rayPos / r;
-        float rDotV = dot(rHat, rayDir);
-        float L2 = max(0.0, 1.0 - rDotV * rDotV);
+          // 3. Relativistic Geodesic Deflection with Kerr Frame-Dragging
+          vec3 rHat = rayPos / r;
+          float rDotV = dot(rHat, rayDir);
+          float L2 = max(0.0, 1.0 - rDotV * rDotV);
 
-        // Standard Schwarzschild null geodesic acceleration
-        vec3 accel = -1.5 * Rs * (L2 / (r * r * r)) * rHat * u_lensStrength;
+          // Standard Schwarzschild null geodesic acceleration
+          vec3 accel = -1.5 * Rs * (L2 / (r * r * r)) * rHat * u_lensStrength;
 
-        // Kerr frame-dragging acceleration (Lense-Thirring dragging of light rays)
-        vec3 drag = (2.0 * spin * Rs / (r * r * r)) * cross(spinAxis, rayDir) * u_lensStrength;
-        accel += drag * 0.35;
+          // Kerr frame-dragging acceleration (Lense-Thirring dragging of light rays)
+          vec3 drag = (2.0 * spin * Rs / (r * r * r)) * cross(spinAxis, rayDir) * u_lensStrength;
+          accel += drag * 0.35;
 
-        // Adaptive step length: small steps near horizon/photon sphere, larger steps far away
-        float dt = clamp(r * 0.042, 0.018, 0.38) * u_qualityScale;
+          // Adaptive step length:
+          // Efficient steps in outer buffer (r > diskOuter), fine-grained steps inside accretion disk & photon sphere
+          float dt;
+          if (r > u_diskOuter) {
+            dt = clamp((r - u_diskOuter) * 0.08 + 0.22, 0.22, 0.55);
+          } else {
+            dt = clamp(r * 0.042, 0.016, 0.32);
+          }
+          dt *= u_qualityScale;
 
-        vec3 nextPos = rayPos + rayDir * dt;
-        vec3 nextDir = normalize(rayDir + accel * dt);
+          vec3 nextPos = rayPos + rayDir * dt;
+          vec3 nextDir = normalize(rayDir + accel * dt);
 
-        // 4. Exact Equatorial Plane Crossing (y = 0)
-        if (rayPos.y * nextPos.y <= 0.0 && abs(rayPos.y - nextPos.y) > 1e-5) {
-          float tCross = -rayPos.y / (nextPos.y - rayPos.y);
-          vec3 pHit = mix(rayPos, nextPos, tCross);
-          float rHit = length(pHit.xz);
+          // 4. Exact Equatorial Plane Crossing (y = 0)
+          if (rayPos.y * nextPos.y <= 0.0 && abs(rayPos.y - nextPos.y) > 1e-5) {
+            float tCross = -rayPos.y / (nextPos.y - rayPos.y);
+            vec3 pHit = mix(rayPos, nextPos, tCross);
+            float rHit = length(pHit.xz);
 
-          if (rHit >= u_diskInner && rHit <= u_diskOuter) {
-            vec4 surfSample = evaluateAccretionPoint(pHit, rHit, rayDir);
-            float stepAlpha = clamp(surfSample.a * 1.45, 0.0, 0.98);
-            accumColor += (1.0 - accumAlpha) * surfSample.rgb * stepAlpha;
-            accumAlpha += (1.0 - accumAlpha) * stepAlpha;
+            if (rHit >= u_diskInner && rHit <= u_diskOuter) {
+              vec4 surfSample = evaluateAccretionPoint(pHit, rHit, rayDir);
+              float stepAlpha = clamp(surfSample.a * 1.45, 0.0, 0.98);
+              accumColor += (1.0 - accumAlpha) * surfSample.rgb * stepAlpha;
+              accumAlpha += (1.0 - accumAlpha) * stepAlpha;
+
+              if (accumAlpha > 0.985) break;
+            }
+          }
+
+          // 5. Continuous Volumetric Integration through the disk's scale height
+          // Distance-adaptive scale height avoids sub-pixel dropout at far camera distances
+          float pixelFootprint = max(0.018, camDist * 0.0028);
+          float effDiskHeight = max(u_diskThickness * (0.042 * r + 0.025), pixelFootprint);
+
+          if (r >= u_diskInner && r <= u_diskOuter && abs(rayPos.y) < effDiskHeight * 3.5) {
+            vec4 volSample = evaluateAccretionPoint(rayPos, r, rayDir);
+            float dTau = volSample.a * 0.62 * dt;
+            float volAlpha = 1.0 - exp(-dTau);
+            accumColor += (1.0 - accumAlpha) * volSample.rgb * volAlpha;
+            accumAlpha += (1.0 - accumAlpha) * volAlpha;
 
             if (accumAlpha > 0.985) break;
           }
+
+          // Advance ray
+          rayPos = nextPos;
+          rayDir = nextDir;
         }
-
-        // 5. Continuous Volumetric Integration through the disk's scale height
-        float diskHeight = u_diskThickness * (0.042 * r + 0.025);
-        if (r >= u_diskInner && r <= u_diskOuter && abs(rayPos.y) < diskHeight * 3.2) {
-          vec4 volSample = evaluateAccretionPoint(rayPos, r, rayDir);
-          float dTau = volSample.a * 0.55 * dt;
-          float volAlpha = 1.0 - exp(-dTau);
-          accumColor += (1.0 - accumAlpha) * volSample.rgb * volAlpha;
-          accumAlpha += (1.0 - accumAlpha) * volAlpha;
-
-          if (accumAlpha > 0.985) break;
-        }
-
-        // Advance ray
-        rayPos = nextPos;
-        rayDir = nextDir;
       }
 
       // Blend remaining background

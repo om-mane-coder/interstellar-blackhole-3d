@@ -97,9 +97,13 @@ class InterstellarApp {
     this.accretionLight.position.set(0, 0, 0);
     this.mainScene.add(this.accretionLight);
 
-    // Black Occluder Sphere at (0,0,0) to mask 3D objects that pass behind the black hole shadow
+    // Depth Occluder Sphere at (0,0,0) to mask 3D objects that pass behind the black hole shadow.
+    // colorWrite is false so it never draws black pixels over the raymarched accretion disk or photon ring.
     const occluderGeo = new THREE.SphereGeometry(2.52, 32, 32);
-    const occluderMat = new THREE.MeshBasicMaterial({ color: 0x000000 });
+    const occluderMat = new THREE.MeshBasicMaterial({
+      colorWrite: false,
+      depthWrite: true,
+    });
     this.occluderMesh = new THREE.Mesh(occluderGeo, occluderMat);
     this.mainScene.add(this.occluderMesh);
   }
@@ -162,8 +166,8 @@ class InterstellarApp {
 
     // Performance adaptation for mobile devices
     if (this.isMobile) {
-      uniforms.u_maxSteps.value = 85;
-      uniforms.u_qualityScale.value = 1.35;
+      uniforms.u_maxSteps.value = 100;
+      uniforms.u_qualityScale.value = 1.15;
     }
 
     this.shaderMaterial = new THREE.ShaderMaterial({
@@ -352,5 +356,5 @@ class InterstellarApp {
 
 // Start Application on Load
 window.addEventListener('DOMContentLoaded', () => {
-  new InterstellarApp();
+  window.__app = new InterstellarApp();
 });
